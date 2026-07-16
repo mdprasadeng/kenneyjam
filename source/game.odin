@@ -6,18 +6,22 @@ import "core:fmt"
 import "core:c"
 import b2 "vendor:box2d"
 
+
 run: bool
 roundCat: rl.Texture
 longCat: rl.Texture
-texture2_rot: f32
 worldId: b2.WorldId
 bodyId: b2.BodyId
 debugDraw: b2.DebugDraw
+b2Camera: rl.Camera2D
+
+
+SCREEN_SIZE := rl.Vector2{512, 512}
 
 init :: proc() {
 	run = true
 	rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
-	rl.InitWindow(1280, 720, "Odin + Raylib on the web")
+	rl.InitWindow(i32(SCREEN_SIZE.x), i32(SCREEN_SIZE.y), "Odin + Raylib on the web")
 
 	// Anything in `assets` folder is available to load.
 	roundCat = rl.LoadTexture("assets/round_cat.png")
@@ -49,7 +53,7 @@ init :: proc() {
 
 	bodyDef : b2.BodyDef = b2.DefaultBodyDef()
 	bodyDef.type = b2.BodyType.dynamicBody
-	bodyDef.position = (b2.Vec2) {0, 4}
+	bodyDef.position = (b2.Vec2) {4, 4}
 	bodyId = b2.CreateBody(worldId, bodyDef)
 
 	dynamicBox:b2.Polygon = b2.MakeBox(1,1)
@@ -60,13 +64,14 @@ init :: proc() {
 
 	debugDraw = raylibDebugDraw()
 
+	b2Camera = rl.Camera2D{
+		offset = rl.Vector2{0, 0},
+		target = rl.Vector2{0, 0},
+		zoom = 1,
+		rotation = 0,
+	}
 
-}
 
-raylibDebugDraw :: proc() -> b2.DebugDraw {
-	dDraw : b2.DebugDraw = b2.DefaultDebugDraw()
-
-	return dDraw
 }
 
 update :: proc() {
@@ -80,16 +85,15 @@ update :: proc() {
 	rl.BeginDrawing()
 	rl.ClearBackground({0, 120, 153, 255})
 	{
-		texture2_rot += rl.GetFrameTime()*50
 		source_rect := rl.Rectangle {
 			0, 0,
 			f32(longCat.width), f32(longCat.height),
 		}
 
 		pos : b2.Vec2 = b2.Body_GetPosition(bodyId)
-		log.info("Body at ", pos, timeStep)
+
 		dest_rect := rl.Rectangle {
-			pos.x*100, pos.y * 100,
+			pos.x, pos.y,
 			f32(longCat.width)*5, f32(longCat.height)*5,
 		}
 		rl.DrawTexturePro(longCat, source_rect, dest_rect, {dest_rect.width/2, dest_rect.height/2}, texture2_rot, rl.WHITE)
@@ -111,8 +115,12 @@ update :: proc() {
 		run = false
 	}
 
-	b2.World_Draw(worldId, &debugDraw)
+	rl.BeginMode2D(b2Camera)
 
+	rl.DrawRectangle(0, 0, 100, 300, rl.RED)
+	//b2.World_Draw(worldId, &debugDraw)
+
+	rl.EndMode2D()
 	rl.EndDrawing()
 
 	// Anything allocated using temp allocator is invalid after this.

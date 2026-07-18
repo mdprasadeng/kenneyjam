@@ -3,9 +3,48 @@ package game
 import "core:c"
 import "core:fmt"
 import "core:log"
+import "core:math"
 import b2 "vendor:box2d"
 import rl "vendor:raylib"
 
+Direction :: enum {
+	North,
+	South,
+	East,
+	West,
+}
+ItemType :: enum {
+	River,
+	Road,
+	Building,
+	Rock,
+	Grass,
+	Cactus,
+}
+ItemRule :: struct {
+	nextTo: ItemType,
+	along:  Direction,
+}
+Item :: struct {
+	spriteName:      string,
+	spriteRotatedBy: f32,
+	type:            ItemType,
+	rules:           [dynamic; 4]ItemRule,
+	hudX:            f32,
+	hudY:            f32,
+}
+
+ItemMap :: struct {
+	items:      [9][9]Item,
+	ruleFailed: [9][9]bool,
+}
+
+Render :: struct {
+	name:     string,
+	rotateBy: f32,
+}
+
+allItems: [dynamic]Item
 
 run: bool
 cartTexture, parchmentTexture: rl.Texture
@@ -15,8 +54,12 @@ debugDraw: b2.DebugDraw
 b2Camera: rl.Camera2D
 wCamera: rl.Camera2D
 sprites: map[string]rl.Rectangle
+rivers: [15]Render
+roads: [15]Render
+selectedItem: Item = {}
+itemMap: ItemMap
 
-GRID_SIZE: f32 = 128.0
+GRID_SIZE: f32 = 64.0
 
 
 SCREEN_SIZE := rl.Vector2{16 * GRID_SIZE, 9 * GRID_SIZE}
@@ -26,8 +69,15 @@ init :: proc() {
 	rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
 	rl.InitWindow(i32(SCREEN_SIZE.x), i32(SCREEN_SIZE.y), "Odin + Raylib on the web")
 
+	image := rl.LoadImage("assets/spritesheet_retina.png")
+	defer rl.UnloadImage(image)
+
+	rl.ImageFormat(&image, .UNCOMPRESSED_R8G8B8A8)
+
 	// Anything in `assets` folder is available to load.
-	cartTexture = rl.LoadTexture("assets/spritesheet_retina.png")
+	cartTexture = rl.LoadTextureFromImage(image)
+
+
 	parchmentTexture = rl.LoadTexture("assets/Textures/parchmentCrinkled.png")
 	rl.SetTextureWrap(cartTexture, .REPEAT)
 
@@ -39,89 +89,10 @@ init :: proc() {
 	}
 
 	sprites = make(map[string]rl.Rectangle)
-	sprites["arrowCorner"] = rl.Rectangle{512, 1152, 128, 128}
-	sprites["arrowCornerSquare"] = rl.Rectangle{1024, 1152, 128, 128}
-	sprites["arrowCrossing"] = rl.Rectangle{1024, 1024, 128, 128}
-	sprites["arrowEnd"] = rl.Rectangle{1024, 896, 128, 128}
-	sprites["arrowHead"] = rl.Rectangle{1024, 768, 128, 128}
-	sprites["arrowSmall"] = rl.Rectangle{1024, 640, 128, 128}
-	sprites["arrowSplit"] = rl.Rectangle{1024, 512, 128, 128}
-	sprites["arrowStraight"] = rl.Rectangle{1024, 384, 128, 128}
-	sprites["banner"] = rl.Rectangle{1024, 256, 128, 128}
-	sprites["bridge"] = rl.Rectangle{1024, 128, 128, 128}
-	sprites["bridgeRope"] = rl.Rectangle{1024, 0, 128, 128}
-	sprites["bush"] = rl.Rectangle{896, 1152, 128, 128}
-	sprites["cactus"] = rl.Rectangle{896, 1024, 128, 128}
-	sprites["cactusLarge"] = rl.Rectangle{896, 896, 128, 128}
-	sprites["campfire"] = rl.Rectangle{896, 768, 128, 128}
-	sprites["castle"] = rl.Rectangle{896, 640, 128, 128}
-	sprites["castleTall"] = rl.Rectangle{896, 512, 128, 128}
-	sprites["castleWide"] = rl.Rectangle{0, 0, 256, 128}
-	sprites["castleWideLow"] = rl.Rectangle{0, 128, 256, 128}
-	sprites["chest"] = rl.Rectangle{896, 128, 128, 128}
-	sprites["church"] = rl.Rectangle{896, 0, 128, 128}
-	sprites["churchLarge"] = rl.Rectangle{768, 1152, 128, 128}
-	sprites["compass"] = rl.Rectangle{768, 1024, 128, 128}
-	sprites["dock"] = rl.Rectangle{768, 896, 128, 128}
-	sprites["elementCircle"] = rl.Rectangle{768, 768, 128, 128}
-	sprites["elementCross"] = rl.Rectangle{768, 640, 128, 128}
-	sprites["elementDiamond"] = rl.Rectangle{768, 512, 128, 128}
-	sprites["elementShield"] = rl.Rectangle{768, 384, 128, 128}
-	sprites["elementSquare"] = rl.Rectangle{768, 256, 128, 128}
-	sprites["fence"] = rl.Rectangle{768, 128, 128, 128}
-	sprites["flag"] = rl.Rectangle{768, 0, 128, 128}
-	sprites["gate"] = rl.Rectangle{640, 1152, 128, 128}
-	sprites["graveyard"] = rl.Rectangle{640, 1024, 128, 128}
-	sprites["house"] = rl.Rectangle{640, 896, 128, 128}
-	sprites["houseChimney"] = rl.Rectangle{640, 768, 128, 128}
-	sprites["houseSmall"] = rl.Rectangle{640, 512, 128, 128}
-	sprites["houseTall"] = rl.Rectangle{640, 384, 128, 128}
-	sprites["houseViking"] = rl.Rectangle{640, 256, 128, 128}
-	sprites["houses"] = rl.Rectangle{640, 640, 128, 128}
-	sprites["lake"] = rl.Rectangle{0, 256, 256, 128}
-	sprites["lakeRound"] = rl.Rectangle{0, 384, 256, 128}
-	sprites["lighthouse"] = rl.Rectangle{1152, 0, 128, 128}
-	sprites["mill"] = rl.Rectangle{512, 1024, 128, 128}
-	sprites["mine"] = rl.Rectangle{512, 896, 128, 128}
-	sprites["palm"] = rl.Rectangle{512, 768, 128, 128}
-	sprites["palmLarge"] = rl.Rectangle{512, 640, 128, 128}
-	sprites["pathCorner"] = rl.Rectangle{512, 512, 128, 128}
-	sprites["pathCrossing"] = rl.Rectangle{512, 384, 128, 128}
-	sprites["pathEnd"] = rl.Rectangle{512, 256, 128, 128}
-	sprites["pathSplit"] = rl.Rectangle{896, 256, 128, 128}
-	sprites["pathStraight"] = rl.Rectangle{896, 384, 128, 128}
-	sprites["pyramid"] = rl.Rectangle{384, 1152, 128, 128}
-	sprites["rocks"] = rl.Rectangle{384, 1024, 128, 128}
-	sprites["rocksA"] = rl.Rectangle{384, 896, 128, 128}
-	sprites["rocksB"] = rl.Rectangle{384, 768, 128, 128}
-	sprites["rocksMountain"] = rl.Rectangle{384, 640, 128, 128}
-	sprites["rocksTall"] = rl.Rectangle{384, 512, 128, 128}
-	sprites["ruins"] = rl.Rectangle{384, 384, 128, 128}
-	sprites["ship"] = rl.Rectangle{384, 256, 128, 128}
-	sprites["skull"] = rl.Rectangle{640, 0, 128, 128}
-	sprites["stable"] = rl.Rectangle{640, 128, 128, 128}
-	sprites["tent"] = rl.Rectangle{256, 1152, 128, 128}
-	sprites["textureBricks"] = rl.Rectangle{256, 1024, 128, 128}
-	sprites["textureStone"] = rl.Rectangle{256, 896, 128, 128}
-	sprites["textureWater"] = rl.Rectangle{256, 768, 128, 128}
-	sprites["tipi"] = rl.Rectangle{256, 640, 128, 128}
-	sprites["tower"] = rl.Rectangle{256, 512, 128, 128}
-	sprites["towerLow"] = rl.Rectangle{256, 384, 128, 128}
-	sprites["towerTall"] = rl.Rectangle{256, 256, 128, 128}
-	sprites["towerWatch"] = rl.Rectangle{256, 128, 128, 128}
-	sprites["treePine"] = rl.Rectangle{256, 0, 128, 128}
-	sprites["treePineLarge"] = rl.Rectangle{128, 1152, 128, 128}
-	sprites["treePineTall"] = rl.Rectangle{128, 768, 128, 256}
-	sprites["treePineTallLarge"] = rl.Rectangle{128, 512, 128, 256}
-	sprites["treePineTallLow"] = rl.Rectangle{0, 896, 128, 256}
-	sprites["treePines"] = rl.Rectangle{128, 1024, 128, 128}
-	sprites["treePinesSmall"] = rl.Rectangle{0, 1152, 128, 128}
-	sprites["treeTall"] = rl.Rectangle{0, 640, 128, 256}
-	sprites["vulcano"] = rl.Rectangle{0, 512, 128, 128}
-	sprites["wall"] = rl.Rectangle{384, 128, 128, 128}
-	sprites["watchtower"] = rl.Rectangle{384, 0, 128, 128}
-	sprites["waterWheel"] = rl.Rectangle{512, 128, 128, 128}
-	sprites["well"] = rl.Rectangle{512, 0, 128, 128}
+	initSprites(&sprites)
+	initItems(allItems)
+
+
 }
 
 update :: proc() {
@@ -133,9 +104,9 @@ update :: proc() {
 
 	rl.BeginMode2D(wCamera)
 
+	//parchment
 	for i in 0 ..< 2 {
 		for j in 0 ..< 1 {
-
 			rl.DrawTexturePro(
 				parchmentTexture,
 				rl.Rectangle{0, 0, 1024, 1024},
@@ -152,15 +123,6 @@ update :: proc() {
 		}
 	}
 
-
-	rl.DrawTexturePro(
-		cartTexture,
-		sprites["compass"],
-		rl.Rectangle{SCREEN_SIZE.x - GRID_SIZE * 3, 0, GRID_SIZE * 3, GRID_SIZE * 3},
-		rl.Vector2{0, 0},
-		0,
-		rl.WHITE,
-	)
 	for i in 0 ..= 9 {
 		rl.DrawLineEx(
 			rl.Vector2{f32(i) * GRID_SIZE, 0},
@@ -177,7 +139,126 @@ update :: proc() {
 			rl.GRAY,
 		)
 	}
-	// rl.DrawTexture(cartTexture, 100, 100, rl.WHITE)
+
+	itemClicked := false
+
+	rl.DrawText(
+		"Plot the flowing waters",
+		i32(9.5 * GRID_SIZE),
+		i32(5.3 * GRID_SIZE),
+		20,
+		rl.BROWN,
+	)
+	rl.DrawText("Plot the winding roads", i32(9.5 * GRID_SIZE), i32(8.3 * GRID_SIZE), 20, rl.BROWN)
+	for item in allItems {
+		drawRect := rl.Rectangle{0, 0, GRID_SIZE, GRID_SIZE}
+		boundRect := rl.Rectangle{0, 0, GRID_SIZE, GRID_SIZE}
+		if item.type == .River {
+			if len(item.rules) == 1 {
+				continue //skip ends
+			}
+			drawRect.x = (9.5 + item.hudX) * GRID_SIZE
+			drawRect.y = (3.5 + item.hudY) * GRID_SIZE
+			boundRect.x = (9 + item.hudX) * GRID_SIZE
+			boundRect.y = (3 + item.hudY) * GRID_SIZE
+			rl.DrawTexturePro(
+				cartTexture,
+				sprites[item.spriteName],
+				drawRect,
+				rl.Vector2{0.5 * GRID_SIZE, 0.5 * GRID_SIZE},
+				item.spriteRotatedBy,
+				rl.WHITE,
+			)
+		}
+
+		if item.type == .Road {
+			if len(item.rules) == 1 {
+				continue //skip ends
+			}
+			drawRect.x = (9.5 + item.hudX) * GRID_SIZE
+			drawRect.y = (6.5 + item.hudY) * GRID_SIZE
+			boundRect.x = (9 + item.hudX) * GRID_SIZE
+			boundRect.y = (6 + item.hudY) * GRID_SIZE
+			rl.DrawTexturePro(
+				cartTexture,
+				sprites[item.spriteName],
+				drawRect,
+				rl.Vector2{0.5 * GRID_SIZE, 0.5 * GRID_SIZE},
+				item.spriteRotatedBy,
+				rl.WHITE,
+			)
+
+		}
+		if (rl.IsMouseButtonReleased(.LEFT) &&
+			   rl.CheckCollisionPointRec(rl.GetMousePosition(), boundRect)) {
+			fmt.printfln("Clicked on ", item.spriteName, item.spriteRotatedBy, len(item.rules))
+			itemClicked = true
+			selectedItem = item
+		}
+	}
+
+	if (!itemClicked &&
+		   rl.IsMouseButtonReleased(.LEFT) &&
+		   rl.CheckCollisionPointRec(
+			   rl.GetMousePosition(),
+			   rl.Rectangle{9 * GRID_SIZE, 3 * GRID_SIZE, 7 * GRID_SIZE, 6 * GRID_SIZE},
+		   )) {
+		fmt.println("Unselecting item")
+		selectedItem = {}
+	}
+
+	if len(selectedItem.spriteName) > 0 {
+		mouseAt := rl.GetMousePosition()
+		drawAt := rl.Rectangle{mouseAt.x, mouseAt.y, GRID_SIZE, GRID_SIZE}
+		if (mouseAt.x <= 9 * GRID_SIZE) {
+			drawAt.x = math.floor(drawAt.x / GRID_SIZE) * GRID_SIZE + 0.5 * GRID_SIZE
+			drawAt.y = math.floor(drawAt.y / GRID_SIZE) * GRID_SIZE + 0.5 * GRID_SIZE
+
+			rl.DrawTexturePro(
+				cartTexture,
+				sprites[selectedItem.spriteName],
+				drawAt,
+				rl.Vector2{0.5 * GRID_SIZE, 0.5 * GRID_SIZE},
+				selectedItem.spriteRotatedBy,
+				rl.ColorAlpha(rl.WHITE, 0.5),
+			)
+			if rl.IsMouseButtonReleased(.LEFT) {
+				x: i32 = i32(math.floor(mouseAt.x / GRID_SIZE))
+				y: i32 = i32(math.floor(mouseAt.y / GRID_SIZE))
+				itemMap.items[x][y] = selectedItem
+				checkItemRules()
+			}
+		}
+	}
+
+
+	for i in 0 ..< 9 {
+		for j in 0 ..< 9 {
+			if len(itemMap.items[i][j].spriteName) == 0 {
+				continue
+			}
+			alpha: f32 = 1.0
+			if (itemMap.ruleFailed[i][j]) {
+				alpha = 0.5
+			}
+			rl.DrawTexturePro(
+				cartTexture,
+				sprites[itemMap.items[i][j].spriteName],
+				rl.Rectangle {
+					(f32(i) + 0.5) * GRID_SIZE,
+					(f32(j) + 0.5) * GRID_SIZE,
+					GRID_SIZE,
+					GRID_SIZE,
+				},
+				rl.Vector2{0.5 * GRID_SIZE, 0.5 * GRID_SIZE},
+				itemMap.items[i][j].spriteRotatedBy,
+				rl.ColorAlpha(rl.WHITE, alpha),
+			)
+
+
+		}
+	}
+
 	rl.EndMode2D()
 
 	rl.EndDrawing()
@@ -189,6 +270,47 @@ update :: proc() {
 
 	// Anything allocated using temp allocator is invalid after this.
 	free_all(context.temp_allocator)
+}
+
+checkItemRules :: proc() {
+
+	for i in 0 ..< 9 {
+		for j in 0 ..< 9 {
+			itemMap.ruleFailed[i][j] = false
+			item := itemMap.items[i][j]
+			if isValidItem(&item) {
+				for rule in item.rules {
+					ci := i
+					cj := j
+					switch rule.along {
+					case .North:
+						cj -= 1
+					case .South:
+						cj += 1
+					case .East:
+						ci += 1
+					case .West:
+						ci -= 1
+
+					}
+					if (ci >= 0 && ci < 9 && cj >= 0 && cj < 9) {
+						checkItem := itemMap.items[ci][cj]
+						if isValidItem(&checkItem) {
+							if (checkItem.type != rule.nextTo) {
+								itemMap.ruleFailed[i][j] = true
+							}
+						} else {
+							itemMap.ruleFailed[i][j] = true
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+isValidItem :: proc(item: ^Item) -> bool {
+	return len(item.spriteName) > 0
 }
 
 // In a web build, this is called when browser changes size. Remove the

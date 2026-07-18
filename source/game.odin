@@ -1,22 +1,25 @@
 package game
 
-import rl "vendor:raylib"
-import "core:log"
-import "core:fmt"
 import "core:c"
+import "core:fmt"
+import "core:log"
 import b2 "vendor:box2d"
+import rl "vendor:raylib"
 
 
 run: bool
-roundCat: rl.Texture
-longCat: rl.Texture
+cartTexture, parchmentTexture: rl.Texture
 worldId: b2.WorldId
 bodyId: b2.BodyId
 debugDraw: b2.DebugDraw
 b2Camera: rl.Camera2D
+wCamera: rl.Camera2D
+sprites: map[string]rl.Rectangle
+
+GRID_SIZE: f32 = 128.0
 
 
-SCREEN_SIZE := rl.Vector2{512, 512}
+SCREEN_SIZE := rl.Vector2{16 * GRID_SIZE, 9 * GRID_SIZE}
 
 init :: proc() {
 	run = true
@@ -24,104 +27,165 @@ init :: proc() {
 	rl.InitWindow(i32(SCREEN_SIZE.x), i32(SCREEN_SIZE.y), "Odin + Raylib on the web")
 
 	// Anything in `assets` folder is available to load.
-	roundCat = rl.LoadTexture("assets/round_cat.png")
+	cartTexture = rl.LoadTexture("assets/spritesheet_retina.png")
+	parchmentTexture = rl.LoadTexture("assets/Textures/parchmentCrinkled.png")
+	rl.SetTextureWrap(cartTexture, .REPEAT)
 
-	// A different way of loading a texture: using `read_entire_file` that works
-	// both on desktop and web. Note: You can import `core:os` and use
-	// `os.read_entire_file`. But that won't work on web. Emscripten has a way
-	// to bundle files into the build, and we access those using this
-	// special `read_entire_file`.
-	if long_cat_data, long_cat_ok := read_entire_file("assets/long_cat.png", context.temp_allocator); long_cat_ok {
-		long_cat_img := rl.LoadImageFromMemory(".png", raw_data(long_cat_data), c.int(len(long_cat_data)))
-		longCat = rl.LoadTextureFromImage(long_cat_img)
-		rl.UnloadImage(long_cat_img)
-	}
-
-	worldDef: b2.WorldDef = b2.DefaultWorldDef()
-	worldDef.gravity = (b2.Vec2) {0.0, -10.0}
-	worldId = b2.CreateWorld(worldDef)
-
-	groundBodyDef : b2.BodyDef = b2.DefaultBodyDef()
-	groundBodyDef.position = (b2.Vec2) {0.0, -10.0}
-
-	groundId: b2.BodyId = b2.CreateBody(worldId, groundBodyDef)
-
-	groundBox : b2.Polygon = b2.MakeBox(50, 10)
-	groundShapeDef :b2.ShapeDef = b2.DefaultShapeDef()
-	_ = b2.CreatePolygonShape(groundId, groundShapeDef, &groundBox)
-
-
-	bodyDef : b2.BodyDef = b2.DefaultBodyDef()
-	bodyDef.type = b2.BodyType.dynamicBody
-	bodyDef.position = (b2.Vec2) {4, 4}
-	bodyId = b2.CreateBody(worldId, bodyDef)
-
-	dynamicBox:b2.Polygon = b2.MakeBox(1,1)
-	shapeDef : b2.ShapeDef = b2.DefaultShapeDef()
-	shapeDef.density = 1.0
-	shapeDef.material.friction = 0.3
-	_ = b2.CreatePolygonShape(bodyId, shapeDef, &dynamicBox)
-
-	debugDraw = raylibDebugDraw()
-
-	b2Camera = rl.Camera2D{
-		offset = rl.Vector2{0, 0},
-		target = rl.Vector2{0, 0},
-		zoom = 1,
+	wCamera = rl.Camera2D {
+		offset   = rl.Vector2{0, 0},
+		target   = rl.Vector2{0, 0},
+		zoom     = 1,
 		rotation = 0,
 	}
 
-
+	sprites = make(map[string]rl.Rectangle)
+	sprites["arrowCorner"] = rl.Rectangle{512, 1152, 128, 128}
+	sprites["arrowCornerSquare"] = rl.Rectangle{1024, 1152, 128, 128}
+	sprites["arrowCrossing"] = rl.Rectangle{1024, 1024, 128, 128}
+	sprites["arrowEnd"] = rl.Rectangle{1024, 896, 128, 128}
+	sprites["arrowHead"] = rl.Rectangle{1024, 768, 128, 128}
+	sprites["arrowSmall"] = rl.Rectangle{1024, 640, 128, 128}
+	sprites["arrowSplit"] = rl.Rectangle{1024, 512, 128, 128}
+	sprites["arrowStraight"] = rl.Rectangle{1024, 384, 128, 128}
+	sprites["banner"] = rl.Rectangle{1024, 256, 128, 128}
+	sprites["bridge"] = rl.Rectangle{1024, 128, 128, 128}
+	sprites["bridgeRope"] = rl.Rectangle{1024, 0, 128, 128}
+	sprites["bush"] = rl.Rectangle{896, 1152, 128, 128}
+	sprites["cactus"] = rl.Rectangle{896, 1024, 128, 128}
+	sprites["cactusLarge"] = rl.Rectangle{896, 896, 128, 128}
+	sprites["campfire"] = rl.Rectangle{896, 768, 128, 128}
+	sprites["castle"] = rl.Rectangle{896, 640, 128, 128}
+	sprites["castleTall"] = rl.Rectangle{896, 512, 128, 128}
+	sprites["castleWide"] = rl.Rectangle{0, 0, 256, 128}
+	sprites["castleWideLow"] = rl.Rectangle{0, 128, 256, 128}
+	sprites["chest"] = rl.Rectangle{896, 128, 128, 128}
+	sprites["church"] = rl.Rectangle{896, 0, 128, 128}
+	sprites["churchLarge"] = rl.Rectangle{768, 1152, 128, 128}
+	sprites["compass"] = rl.Rectangle{768, 1024, 128, 128}
+	sprites["dock"] = rl.Rectangle{768, 896, 128, 128}
+	sprites["elementCircle"] = rl.Rectangle{768, 768, 128, 128}
+	sprites["elementCross"] = rl.Rectangle{768, 640, 128, 128}
+	sprites["elementDiamond"] = rl.Rectangle{768, 512, 128, 128}
+	sprites["elementShield"] = rl.Rectangle{768, 384, 128, 128}
+	sprites["elementSquare"] = rl.Rectangle{768, 256, 128, 128}
+	sprites["fence"] = rl.Rectangle{768, 128, 128, 128}
+	sprites["flag"] = rl.Rectangle{768, 0, 128, 128}
+	sprites["gate"] = rl.Rectangle{640, 1152, 128, 128}
+	sprites["graveyard"] = rl.Rectangle{640, 1024, 128, 128}
+	sprites["house"] = rl.Rectangle{640, 896, 128, 128}
+	sprites["houseChimney"] = rl.Rectangle{640, 768, 128, 128}
+	sprites["houseSmall"] = rl.Rectangle{640, 512, 128, 128}
+	sprites["houseTall"] = rl.Rectangle{640, 384, 128, 128}
+	sprites["houseViking"] = rl.Rectangle{640, 256, 128, 128}
+	sprites["houses"] = rl.Rectangle{640, 640, 128, 128}
+	sprites["lake"] = rl.Rectangle{0, 256, 256, 128}
+	sprites["lakeRound"] = rl.Rectangle{0, 384, 256, 128}
+	sprites["lighthouse"] = rl.Rectangle{1152, 0, 128, 128}
+	sprites["mill"] = rl.Rectangle{512, 1024, 128, 128}
+	sprites["mine"] = rl.Rectangle{512, 896, 128, 128}
+	sprites["palm"] = rl.Rectangle{512, 768, 128, 128}
+	sprites["palmLarge"] = rl.Rectangle{512, 640, 128, 128}
+	sprites["pathCorner"] = rl.Rectangle{512, 512, 128, 128}
+	sprites["pathCrossing"] = rl.Rectangle{512, 384, 128, 128}
+	sprites["pathEnd"] = rl.Rectangle{512, 256, 128, 128}
+	sprites["pathSplit"] = rl.Rectangle{896, 256, 128, 128}
+	sprites["pathStraight"] = rl.Rectangle{896, 384, 128, 128}
+	sprites["pyramid"] = rl.Rectangle{384, 1152, 128, 128}
+	sprites["rocks"] = rl.Rectangle{384, 1024, 128, 128}
+	sprites["rocksA"] = rl.Rectangle{384, 896, 128, 128}
+	sprites["rocksB"] = rl.Rectangle{384, 768, 128, 128}
+	sprites["rocksMountain"] = rl.Rectangle{384, 640, 128, 128}
+	sprites["rocksTall"] = rl.Rectangle{384, 512, 128, 128}
+	sprites["ruins"] = rl.Rectangle{384, 384, 128, 128}
+	sprites["ship"] = rl.Rectangle{384, 256, 128, 128}
+	sprites["skull"] = rl.Rectangle{640, 0, 128, 128}
+	sprites["stable"] = rl.Rectangle{640, 128, 128, 128}
+	sprites["tent"] = rl.Rectangle{256, 1152, 128, 128}
+	sprites["textureBricks"] = rl.Rectangle{256, 1024, 128, 128}
+	sprites["textureStone"] = rl.Rectangle{256, 896, 128, 128}
+	sprites["textureWater"] = rl.Rectangle{256, 768, 128, 128}
+	sprites["tipi"] = rl.Rectangle{256, 640, 128, 128}
+	sprites["tower"] = rl.Rectangle{256, 512, 128, 128}
+	sprites["towerLow"] = rl.Rectangle{256, 384, 128, 128}
+	sprites["towerTall"] = rl.Rectangle{256, 256, 128, 128}
+	sprites["towerWatch"] = rl.Rectangle{256, 128, 128, 128}
+	sprites["treePine"] = rl.Rectangle{256, 0, 128, 128}
+	sprites["treePineLarge"] = rl.Rectangle{128, 1152, 128, 128}
+	sprites["treePineTall"] = rl.Rectangle{128, 768, 128, 256}
+	sprites["treePineTallLarge"] = rl.Rectangle{128, 512, 128, 256}
+	sprites["treePineTallLow"] = rl.Rectangle{0, 896, 128, 256}
+	sprites["treePines"] = rl.Rectangle{128, 1024, 128, 128}
+	sprites["treePinesSmall"] = rl.Rectangle{0, 1152, 128, 128}
+	sprites["treeTall"] = rl.Rectangle{0, 640, 128, 256}
+	sprites["vulcano"] = rl.Rectangle{0, 512, 128, 128}
+	sprites["wall"] = rl.Rectangle{384, 128, 128, 128}
+	sprites["watchtower"] = rl.Rectangle{384, 0, 128, 128}
+	sprites["waterWheel"] = rl.Rectangle{512, 128, 128, 128}
+	sprites["well"] = rl.Rectangle{512, 0, 128, 128}
 }
 
 update :: proc() {
-	timeStep : f32 = 1.0 / 60
-	subStepCount :i32 = 4
-
-	b2.World_Step(worldId, timeStep, subStepCount)
-
 
 
 	rl.BeginDrawing()
 	rl.ClearBackground({0, 120, 153, 255})
-	{
-		source_rect := rl.Rectangle {
-			0, 0,
-			f32(longCat.width), f32(longCat.height),
+
+
+	rl.BeginMode2D(wCamera)
+
+	for i in 0 ..< 2 {
+		for j in 0 ..< 1 {
+
+			rl.DrawTexturePro(
+				parchmentTexture,
+				rl.Rectangle{0, 0, 1024, 1024},
+				rl.Rectangle {
+					f32(i) * GRID_SIZE * 4 * 3,
+					f32(j) * GRID_SIZE * 4 * 3,
+					GRID_SIZE * 4 * 3,
+					GRID_SIZE * 4 * 3,
+				},
+				rl.Vector2{0, 0},
+				0,
+				rl.WHITE,
+			)
 		}
-
-		pos : b2.Vec2 = b2.Body_GetPosition(bodyId)
-
-		dest_rect := rl.Rectangle {
-			pos.x, pos.y,
-			f32(longCat.width)*5, f32(longCat.height)*5,
-		}
-		rl.DrawTexturePro(longCat, source_rect, dest_rect, {dest_rect.width/2, dest_rect.height/2}, texture2_rot, rl.WHITE)
-	}
-	rl.DrawTextureEx(roundCat, rl.GetMousePosition(), 0, 5, rl.WHITE)
-	rl.DrawRectangleRec({0, 0, 220, 130}, rl.BLACK)
-	rl.GuiLabel({10, 10, 200, 20}, "raygui works!")
-
-	if rl.GuiButton({10, 30, 200, 20}, "Print to log (see console)") {
-		log.info("log.info works!")
-		fmt.println("fmt.println too.")
 	}
 
-	if rl.GuiButton({10, 60, 200, 20}, "Source code (opens GitHub)") {
-		rl.OpenURL("https://github.com/karl-zylinski/odin-raylib-web")
+
+	rl.DrawTexturePro(
+		cartTexture,
+		sprites["compass"],
+		rl.Rectangle{SCREEN_SIZE.x - GRID_SIZE * 3, 0, GRID_SIZE * 3, GRID_SIZE * 3},
+		rl.Vector2{0, 0},
+		0,
+		rl.WHITE,
+	)
+	for i in 0 ..= 9 {
+		rl.DrawLineEx(
+			rl.Vector2{f32(i) * GRID_SIZE, 0},
+			rl.Vector2{f32(i) * GRID_SIZE, SCREEN_SIZE.y},
+			3 if i % 3 == 0 else 1,
+			rl.GRAY,
+		)
 	}
-
-	if rl.GuiButton({10, 90, 200, 20}, "Quit") {
-		run = false
+	for i in 0 ..= 9 {
+		rl.DrawLineEx(
+			rl.Vector2{0, f32(i) * GRID_SIZE},
+			rl.Vector2{SCREEN_SIZE.y, f32(i) * GRID_SIZE},
+			3 if i % 3 == 0 else 1,
+			rl.GRAY,
+		)
 	}
-
-	rl.BeginMode2D(b2Camera)
-
-	rl.DrawRectangle(0, 0, 100, 300, rl.RED)
-	//b2.World_Draw(worldId, &debugDraw)
-
+	// rl.DrawTexture(cartTexture, 100, 100, rl.WHITE)
 	rl.EndMode2D()
+
 	rl.EndDrawing()
+
+	if (rl.IsKeyReleased(rl.KeyboardKey.C)) {
+		log.info("C down")
+		fmt.printfln("C down")
+	}
 
 	// Anything allocated using temp allocator is invalid after this.
 	free_all(context.temp_allocator)
@@ -147,3 +211,4 @@ should_run :: proc() -> bool {
 
 	return run
 }
+

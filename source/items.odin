@@ -7,11 +7,11 @@ initLevels :: proc(level: ^Level) {
 	level.name = "Scalopia"
 
 	level.order[0] = {0, 0}
-	level.order[1] = {1, 1}
-	level.order[2] = {0, 1}
+	level.order[1] = {0, 1}
+	level.order[2] = {1, 1}
 	level.order[3] = {1, 0}
 	
-	subLevel: SubLevel = {}
+	sl: SubLevel = {}
 	level.subLevel[0][0].name = "Nyle River"
 	level.subLevel[1][0].name = "Chruch of Trader"
 	level.subLevel[0][1].name = "City of Calgor"
@@ -26,29 +26,101 @@ initLevels :: proc(level: ^Level) {
 	level.subLevel[1][0].instructions[1] = "Click Below and Left to map"
 	level.subLevel[1][0].instructions[2] = "Double click to Remove"
 
-	level.subLevel[0][1].instructions[0] = "Level 3/4"
+	level.subLevel[0][1].instructions[0] = "Level 2/4"
 	level.subLevel[0][1].instructions[1] = "Click Below and Left to map"
 	level.subLevel[0][1].instructions[2] = "Double click to Remove"
 
-	level.subLevel[1][1].instructions[0] = "Level 2/4"
+	level.subLevel[1][1].instructions[0] = "Level 3/4"
 	level.subLevel[1][1].instructions[1] = "Click Below and Left to map"
 	level.subLevel[1][1].instructions[2] = "Double click to Remove"
 
 	
-	subLevel.elements[0][0] = "r1e"
-	subLevel.elements[1][1] = "church"
-	subLevel.elements[2][0] = "r1w"
-	subLevel.elements[0][8] = "w1e"
-	subLevel.elements[1][7] = "mill"
-	subLevel.elements[2][8] = "w1w"
-	//subLevel.elements[8][0] = "house"
-	//subLevel.elements[8][8] = "house"
+	//mill, waterWheel, lighthouse, dock
+	//chruch, stable, house, castleTall, houseSmall, houses, houseViking, tipi, tent
+	
+	sl.elements[1][0] = "w1s"
+	sl.elements[1][1] = "w2ne"
+	sl.elements[2][1] = "w2ew"
+	sl.elements[3][1] = "w2ew"
+	sl.elements[4][1] = "w2ew"
+	sl.elements[5][1] = "w2ew"
+	sl.elements[6][1] = "w2ew"
+	sl.elements[7][2] = "w3w"
+	sl.elements[7][3] = "w2ns"
+	sl.elements[7][4] = "w2ns"
+	sl.elements[7][5] = "w2ns"
+	sl.elements[7][6] = "w2ns"
+	sl.elements[6][7] = "w2ew"
+	sl.elements[4][7] = "w2es"
+	sl.elements[8][2] = "w1w"
+	sl.elements[4][8] = "w1n"
+
+	sl.elements[4][2] = "lighthouse"
+	sl.elements[7][0] = "waterWheel"
+	sl.elements[5][6] = "mill"
 
 
-	level.subLevel[0][0].elements = subLevel.elements
-	level.subLevel[1][0].elements = subLevel.elements
-	level.subLevel[0][1].elements = subLevel.elements
-	level.subLevel[1][1].elements = subLevel.elements
+	
+
+	sl.elements[0][4] = "r1e"
+	
+	sl.elements[1][4] = "r2ew"
+	sl.elements[2][4] = "r2ew"
+	//sl.elements[3][4] = "r2sw"
+	sl.elements[4][4] = "house"
+	sl.elements[3][5] = "r2ns"
+	sl.elements[3][6] = "r2ns"
+	sl.elements[3][7] = "r2wn"
+	sl.elements[2][7] = "r2ew"
+	sl.elements[1][7] = "r2ew"
+	sl.elements[1][6] = "stable"
+	
+	sl.elements[0][7] = "r1e"
+
+	level.subLevel[0][0].elements = sl.elements
+	sl = {}
+	sl.elements[4][0] = "w1s"
+	sl.elements[7][8] = "lighthouse"
+	sl.elements[4][8] = "w1n"
+	
+	sl.elements[0][2] = "r1e"
+	sl.elements[7][4] = "houses"
+	sl.elements[2][8] = "r1n"
+
+
+	level.subLevel[0][1].elements = sl.elements
+	
+	
+	sl = {}
+	sl.elements[0][2] = "w1e"
+	sl.elements[8][4] = "w1w"
+	sl.elements[4][8] = "w1n"
+
+	sl.elements[1][5] = "houseViking"
+	sl.elements[2][5] = "r1e"
+	sl.elements[5][3] = "tipi"
+	sl.elements[4][3] = "r1w"
+	sl.elements[1][8] = "tent"
+	sl.elements[1][7] = "r1e"
+
+	level.subLevel[1][0].elements = sl.elements
+	
+	
+	sl = {}
+	sl.elements[4][0] = "w1s"
+	sl.elements[8][7] = "w1w"
+	sl.elements[6][6] = "w4"
+	sl.elements[2][2] = "waterWheel"
+	sl.elements[0][5] = "dock"
+	sl.elements[2][8] = "lighthouse"
+
+	sl.elements[8][2] = "r1w"
+	sl.elements[8][5] = "r1w"
+	sl.elements[5][3] = "r4"
+	sl.elements[3][6] = "castleTall"
+	
+
+	level.subLevel[1][1].elements = sl.elements
 
 	fmt.println("Level init", level.subLevel[0][0].elements[0][0])
 }
@@ -214,8 +286,8 @@ initItems :: proc(allItems: ^map[string]Item, randItems: ^[dynamic]string) {
 		spriteName      = "pathCorner",
 		spriteRotatedBy = 0,
 		type            = .River,
-		hudX            = 0,
-		hudY            = 1,
+		hudX            = 1,
+		hudY            = 0,
 	}
 	append(&item.rules, ItemRule{.River, .North}, ItemRule{.River, .East})
 	allItems["w2ne"] = item
@@ -224,8 +296,8 @@ initItems :: proc(allItems: ^map[string]Item, randItems: ^[dynamic]string) {
 		spriteName      = "pathCorner",
 		spriteRotatedBy = 90,
 		type            = .River,
-		hudX            = 0,
-		hudY            = 0,
+		hudX            = 1,
+		hudY            = 1,
 	}
 
 	append(&item.rules, ItemRule{.River, .East}, ItemRule{.River, .South})
@@ -235,8 +307,8 @@ initItems :: proc(allItems: ^map[string]Item, randItems: ^[dynamic]string) {
 		spriteName      = "pathCorner",
 		spriteRotatedBy = 180,
 		type            = .River,
-		hudX            = 1,
-		hudY            = 0,
+		hudX            = 0,
+		hudY            = 1,
 	}
 
 	append(&item.rules, ItemRule{.River, .South}, ItemRule{.River, .West})
@@ -246,8 +318,8 @@ initItems :: proc(allItems: ^map[string]Item, randItems: ^[dynamic]string) {
 		spriteName      = "pathCorner",
 		spriteRotatedBy = 270,
 		type            = .River,
-		hudX            = 1,
-		hudY            = 1,
+		hudX            = 0,
+		hudY            = 0,
 	}
 
 	append(&item.rules, ItemRule{.River, .West}, ItemRule{.River, .North})
@@ -391,8 +463,8 @@ initItems :: proc(allItems: ^map[string]Item, randItems: ^[dynamic]string) {
 		spriteName      = "arrowCornerSquare",
 		spriteRotatedBy = 0,
 		type            = .Road,
-		hudX            = 0,
-		hudY            = 1,
+		hudX            = 1,
+		hudY            = 0,
 	}
 
 	append(&item.rules, ItemRule{.Road, .North}, ItemRule{.Road, .East})
@@ -402,8 +474,8 @@ initItems :: proc(allItems: ^map[string]Item, randItems: ^[dynamic]string) {
 		spriteName      = "arrowCornerSquare",
 		spriteRotatedBy = 90,
 		type            = .Road,
-		hudX            = 0,
-		hudY            = 0,
+		hudX            = 1,
+		hudY            = 1,
 	}
 	append(&item.rules, ItemRule{.Road, .East}, ItemRule{.Road, .South})
 	allItems["r2es"] = item
@@ -412,8 +484,8 @@ initItems :: proc(allItems: ^map[string]Item, randItems: ^[dynamic]string) {
 		spriteName      = "arrowCornerSquare",
 		spriteRotatedBy = 180,
 		type            = .Road,
-		hudX            = 1,
-		hudY            = 0,
+		hudX            = 0,
+		hudY            = 1,
 	}
 
 	append(&item.rules, ItemRule{.Road, .South}, ItemRule{.Road, .West})
@@ -423,8 +495,8 @@ initItems :: proc(allItems: ^map[string]Item, randItems: ^[dynamic]string) {
 		spriteName      = "arrowCornerSquare",
 		spriteRotatedBy = 270,
 		type            = .Road,
-		hudX            = 1,
-		hudY            = 1,
+		hudX            = 0,
+		hudY            = 0,
 	}
 
 	append(&item.rules, ItemRule{.Road, .West}, ItemRule{.Road, .North})
@@ -573,6 +645,84 @@ initItems :: proc(allItems: ^map[string]Item, randItems: ^[dynamic]string) {
 
 	item = Item {
 		spriteName = "house",
+		type       = .Building,
+	}
+	append(
+		&item.rules,
+		ItemRule{.Road, .West},
+		ItemRule{.Road, .North},
+		ItemRule{.Road, .East},
+		ItemRule{.Road, .South},
+	)
+	allItems[item.spriteName] = item
+
+	item = Item {
+		spriteName = "houseChimney",
+		type       = .Building,
+	}
+	append(
+		&item.rules,
+		ItemRule{.Road, .West},
+		ItemRule{.Road, .North},
+		ItemRule{.Road, .East},
+		ItemRule{.Road, .South},
+	)
+	allItems[item.spriteName] = item
+
+	item = Item {
+		spriteName = "houseSmall",
+		type       = .Building,
+	}
+	append(
+		&item.rules,
+		ItemRule{.Road, .West},
+		ItemRule{.Road, .North},
+		ItemRule{.Road, .East},
+		ItemRule{.Road, .South},
+	)
+	allItems[item.spriteName] = item
+
+	item = Item {
+		spriteName = "houseViking",
+		type       = .Building,
+	}
+	append(
+		&item.rules,
+		ItemRule{.Road, .West},
+		ItemRule{.Road, .North},
+		ItemRule{.Road, .East},
+		ItemRule{.Road, .South},
+	)
+	allItems[item.spriteName] = item
+
+	item = Item {
+		spriteName = "houses",
+		type       = .Building,
+	}
+	append(
+		&item.rules,
+		ItemRule{.Road, .West},
+		ItemRule{.Road, .North},
+		ItemRule{.Road, .East},
+		ItemRule{.Road, .South},
+	)
+	allItems[item.spriteName] = item
+
+	item = Item {
+		spriteName = "tipi",
+		type       = .Building,
+	}
+	append(
+		&item.rules,
+		ItemRule{.Road, .West},
+		ItemRule{.Road, .North},
+		ItemRule{.Road, .East},
+		ItemRule{.Road, .South},
+	)
+	allItems[item.spriteName] = item
+
+	item = Item {
+		spriteName = "tent",
 		type       = .Building,
 	}
 	append(

@@ -97,6 +97,9 @@ loadSubLevel :: proc(subLevelIndex: int) {
 
 		for i in 0 ..< 9 {
 			for j in 0 ..< 9 {
+				if (i > 0 && i < 8 && j > 0 && j < 8) {
+					continue
+				}
 				elem := prevSubLevel.elements[i][j]
 				if elem == "r1n" do prevSubLevel.items[i][j] = allItems["r2ns"]
 				if elem == "r1s" do prevSubLevel.items[i][j] = allItems["r2ns"]
@@ -273,7 +276,7 @@ update :: proc() {
 		rl.EndDrawing()
 
 		if rl.IsMouseButtonReleased(.LEFT) {
-			//Copy to clipboard
+			rl.TakeScreenshot("Scalopia.png")
 		}
 		return
 	}
@@ -393,14 +396,14 @@ update :: proc() {
 		i32(9.5 * GRID_SIZE),
 		i32(5.3 * GRID_SIZE),
 		20,
-		rl.BROWN,
+		rl.BLUE,
 	)
 	rl.DrawText(
 		roadRuleFailedMsg if roadsRuleFailed else roadRuleDoneMsg,
 		i32(9.5 * GRID_SIZE),
 		i32(8.3 * GRID_SIZE),
 		20,
-		rl.BROWN,
+		rl.MAROON,
 	)
 	for _, item in allItems {
 		drawRect := rl.Rectangle{0, 0, GRID_SIZE, GRID_SIZE}
@@ -419,7 +422,7 @@ update :: proc() {
 				drawRect,
 				rl.Vector2{0.5 * GRID_SIZE, 0.5 * GRID_SIZE},
 				item.spriteRotatedBy,
-				rl.BROWN,
+				rl.WHITE,
 			)
 		} else if item.type == .Road {
 			if len(item.rules) == 1 {

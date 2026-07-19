@@ -7,79 +7,48 @@ initLevels :: proc(level: ^Level) {
 	level.name = "Scalopia"
 
 	level.order[0] = {0, 0}
-	level.order[1] = {2, 2}
-	level.order[2] = {0, 2}
-	level.order[3] = {2, 0}
-	level.order[4] = {1, 2}
-	level.order[5] = {1, 0}
-	level.order[6] = {0, 1}
-	level.order[7] = {2, 1}
-	level.order[8] = {1, 1}
-
+	level.order[1] = {1, 1}
+	level.order[2] = {0, 1}
+	level.order[3] = {1, 0}
+	
 	subLevel: SubLevel = {}
-	level.subLevel[0][0].name = "Lights of the Setting Sun"
-	level.subLevel[1][0].name = "Aurora"
-	level.subLevel[2][0].name = "Lights of the Rising Sun"
-	level.subLevel[0][1].name = "Evening"
-	level.subLevel[1][1].name = "City of Centria"
-	level.subLevel[2][1].name = "Morning"
-	level.subLevel[0][2].name = "Winds of the Setting Sun"
-	level.subLevel[1][2].name = "Gust"
-	level.subLevel[2][2].name = "Winds of the Rising Sun"
+	level.subLevel[0][0].name = "Nyle River"
+	level.subLevel[1][0].name = "Chruch of Trader"
+	level.subLevel[0][1].name = "City of Calgor"
+	level.subLevel[1][1].name = "Planes of Anges"
 
 
-	level.subLevel[0][0].instructions[0] = "Tutorial"
+	level.subLevel[0][0].instructions[0] = "Level 1/4"
 	level.subLevel[0][0].instructions[1] = "Click Below and Left to map"
 	level.subLevel[0][0].instructions[2] = "Double click to Remove"
 
-	level.subLevel[1][0].instructions[0] = "Level 5/8"
+	level.subLevel[1][0].instructions[0] = "Level 4/4"
 	level.subLevel[1][0].instructions[1] = "Click Below and Left to map"
 	level.subLevel[1][0].instructions[2] = "Double click to Remove"
 
-	level.subLevel[2][0].instructions[0] = "Level 3/8"
-	level.subLevel[2][0].instructions[1] = "Click Below and Left to map"
-	level.subLevel[2][0].instructions[2] = "Double click to Remove"
-
-	level.subLevel[0][1].instructions[0] = "Level 6/8"
+	level.subLevel[0][1].instructions[0] = "Level 3/4"
 	level.subLevel[0][1].instructions[1] = "Click Below and Left to map"
 	level.subLevel[0][1].instructions[2] = "Double click to Remove"
 
-	level.subLevel[1][1].instructions[0] = "Level 8/8"
+	level.subLevel[1][1].instructions[0] = "Level 2/4"
 	level.subLevel[1][1].instructions[1] = "Click Below and Left to map"
 	level.subLevel[1][1].instructions[2] = "Double click to Remove"
 
-	level.subLevel[2][1].instructions[0] = "Level 7/8"
-	level.subLevel[2][1].instructions[1] = "Click Below and Left to map"
-	level.subLevel[2][1].instructions[2] = "Double click to Remove"
-
-	level.subLevel[0][2].instructions[0] = "Level 2/8"
-	level.subLevel[0][2].instructions[1] = "Click Below and Left to map"
-	level.subLevel[0][2].instructions[2] = "Double click to Remove"
-
-	level.subLevel[1][2].instructions[0] = "Level 4/8"
-	level.subLevel[1][2].instructions[1] = "Click Below and Left to map"
-	level.subLevel[1][2].instructions[2] = "Double click to Remove"
-
-	level.subLevel[2][2].instructions[0] = "Level 1/8"
-	level.subLevel[2][2].instructions[1] = "Click Below and Left to map"
-	level.subLevel[2][2].instructions[2] = "Double click to Remove"
-
+	
 	subLevel.elements[0][0] = "r1e"
 	subLevel.elements[1][1] = "church"
 	subLevel.elements[2][0] = "r1w"
 	subLevel.elements[0][8] = "w1e"
 	subLevel.elements[1][7] = "mill"
 	subLevel.elements[2][8] = "w1w"
+	//subLevel.elements[8][0] = "house"
+	//subLevel.elements[8][8] = "house"
+
 
 	level.subLevel[0][0].elements = subLevel.elements
 	level.subLevel[1][0].elements = subLevel.elements
-	level.subLevel[2][0].elements = subLevel.elements
 	level.subLevel[0][1].elements = subLevel.elements
 	level.subLevel[1][1].elements = subLevel.elements
-	level.subLevel[2][1].elements = subLevel.elements
-	level.subLevel[0][2].elements = subLevel.elements
-	level.subLevel[1][2].elements = subLevel.elements
-	level.subLevel[2][2].elements = subLevel.elements
 
 	fmt.println("Level init", level.subLevel[0][0].elements[0][0])
 }
@@ -102,8 +71,6 @@ initSprites :: proc(sprites: ^map[string]rl.Rectangle) {
 	sprites["campfire"] = rl.Rectangle{896, 768, 128, 128}
 	sprites["castle"] = rl.Rectangle{896, 640, 128, 128}
 	sprites["castleTall"] = rl.Rectangle{896, 512, 128, 128}
-	sprites["castleWide"] = rl.Rectangle{0, 0, 256, 128}
-	sprites["castleWideLow"] = rl.Rectangle{0, 128, 256, 128}
 	sprites["chest"] = rl.Rectangle{896, 128, 128, 128}
 	sprites["church"] = rl.Rectangle{896, 0, 128, 128}
 	sprites["churchLarge"] = rl.Rectangle{768, 1152, 128, 128}
@@ -124,8 +91,6 @@ initSprites :: proc(sprites: ^map[string]rl.Rectangle) {
 	sprites["houseTall"] = rl.Rectangle{640, 384, 128, 128}
 	sprites["houseViking"] = rl.Rectangle{640, 256, 128, 128}
 	sprites["houses"] = rl.Rectangle{640, 640, 128, 128}
-	sprites["lake"] = rl.Rectangle{0, 256, 256, 128}
-	sprites["lakeRound"] = rl.Rectangle{0, 384, 256, 128}
 	sprites["lighthouse"] = rl.Rectangle{1152, 0, 128, 128}
 	sprites["mill"] = rl.Rectangle{512, 1024, 128, 128}
 	sprites["mine"] = rl.Rectangle{512, 896, 128, 128}
@@ -157,9 +122,6 @@ initSprites :: proc(sprites: ^map[string]rl.Rectangle) {
 	sprites["towerWatch"] = rl.Rectangle{256, 128, 128, 128}
 	sprites["treePine"] = rl.Rectangle{256, 0, 128, 128}
 	sprites["treePineLarge"] = rl.Rectangle{128, 1152, 128, 128}
-	sprites["treePineTall"] = rl.Rectangle{128, 768, 128, 256}
-	sprites["treePineTallLarge"] = rl.Rectangle{128, 512, 128, 256}
-	sprites["treePineTallLow"] = rl.Rectangle{0, 896, 128, 256}
 	sprites["treePines"] = rl.Rectangle{128, 1024, 128, 128}
 	sprites["treePinesSmall"] = rl.Rectangle{0, 1152, 128, 128}
 	sprites["treeTall"] = rl.Rectangle{0, 640, 128, 256}
@@ -170,8 +132,82 @@ initSprites :: proc(sprites: ^map[string]rl.Rectangle) {
 	sprites["well"] = rl.Rectangle{512, 0, 128, 128}
 }
 
-initItems :: proc(allItems: ^map[string]Item) {
+initItems :: proc(allItems: ^map[string]Item, randItems: ^[dynamic]string) {
 	item: Item
+
+	item = Item{spriteName="treePine", type=.Grass}
+	allItems[item.spriteName] = item
+	append(randItems, item.spriteName)
+
+	item = Item{spriteName="bush", type=.Grass}
+	allItems[item.spriteName] = item
+	append(randItems, item.spriteName)
+
+	item = Item{spriteName="cactusLarge", type=.Grass}
+	allItems[item.spriteName] = item
+	append(randItems, item.spriteName)
+
+	item = Item{spriteName="palm", type=.Grass}
+	allItems[item.spriteName] = item
+	append(randItems, item.spriteName)
+
+	item = Item{spriteName="palmLarge", type=.Grass}
+	allItems[item.spriteName] = item
+	append(randItems, item.spriteName)
+
+	item = Item{spriteName="treePineLarge", type=.Grass}
+	allItems[item.spriteName] = item
+	append(randItems, item.spriteName)
+
+	item = Item{spriteName="treePines", type=.Grass}
+	allItems[item.spriteName] = item
+	append(randItems, item.spriteName)
+
+	item = Item{spriteName="rocks", type=.Rock}
+	allItems[item.spriteName] = item
+	append(randItems, item.spriteName)
+
+	item = Item{spriteName="rocksA", type=.Rock}
+	allItems[item.spriteName] = item
+	append(randItems, item.spriteName)
+
+	item = Item{spriteName="rocksB", type=.Rock}
+	allItems[item.spriteName] = item
+	append(randItems, item.spriteName)
+
+		item = Item{spriteName="rocksMountain", type=.Rock}
+	allItems[item.spriteName] = item
+	append(randItems, item.spriteName)
+
+		item = Item{spriteName="rocksTall", type=.Rock}
+	allItems[item.spriteName] = item
+	append(randItems, item.spriteName)
+
+		item = Item{spriteName="ruins", type=.Rock}
+	allItems[item.spriteName] = item
+	append(randItems, item.spriteName)
+
+		item = Item{spriteName="skull", type=.Rock}
+	allItems[item.spriteName] = item
+	append(randItems, item.spriteName)
+
+		item = Item{spriteName="vulcano", type=.Rock}
+	allItems[item.spriteName] = item
+	append(randItems, item.spriteName)
+
+		item = Item{spriteName="pyramid", type=.Rock}
+	allItems[item.spriteName] = item
+	append(randItems, item.spriteName)
+
+
+
+
+
+
+
+
+
+
 
 	//pathCorner
 	item = Item {
@@ -352,7 +388,7 @@ initItems :: proc(allItems: ^map[string]Item) {
 
 	//arrowCorner
 	item = Item {
-		spriteName      = "arrowCorner",
+		spriteName      = "arrowCornerSquare",
 		spriteRotatedBy = 0,
 		type            = .Road,
 		hudX            = 0,
@@ -363,7 +399,7 @@ initItems :: proc(allItems: ^map[string]Item) {
 	allItems["r2ne"] = item
 
 	item = Item {
-		spriteName      = "arrowCorner",
+		spriteName      = "arrowCornerSquare",
 		spriteRotatedBy = 90,
 		type            = .Road,
 		hudX            = 0,
@@ -373,7 +409,7 @@ initItems :: proc(allItems: ^map[string]Item) {
 	allItems["r2es"] = item
 
 	item = Item {
-		spriteName      = "arrowCorner",
+		spriteName      = "arrowCornerSquare",
 		spriteRotatedBy = 180,
 		type            = .Road,
 		hudX            = 1,
@@ -384,7 +420,7 @@ initItems :: proc(allItems: ^map[string]Item) {
 	allItems["r2sw"] = item
 
 	item = Item {
-		spriteName      = "arrowCorner",
+		spriteName      = "arrowCornerSquare",
 		spriteRotatedBy = 270,
 		type            = .Road,
 		hudX            = 1,

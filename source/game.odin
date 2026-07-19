@@ -5,6 +5,7 @@ import "core:c"
 import "core:fmt"
 import "core:log"
 import "core:math"
+import "core:math/rand"
 import rl "vendor:raylib"
 
 Direction :: enum {
@@ -19,7 +20,6 @@ ItemType :: enum {
 	Building,
 	Rock,
 	Grass,
-	Cactus,
 }
 ItemRule :: struct {
 	nextTo: ItemType,
@@ -49,7 +49,7 @@ SubLevel :: struct {
 
 Level :: struct {
 	name:     cstring,
-	subLevel: [3][3]SubLevel,
+	subLevel: [2][2]SubLevel,
 	order:    [9][2]int,
 }
 
@@ -65,9 +65,10 @@ currentSubLevel: ^SubLevel
 currentSub: int
 
 allItems: map[string]Item
+randItems: [dynamic]string
 
 run: bool
-cartTexture, parchmentTexture: rl.Texture
+cartBlue, cartBrown, cartBlack, cartGreen, parchmentTexture: rl.Texture
 wCamera: rl.Camera2D
 sprites: map[string]rl.Rectangle
 selectedItem: Item = {}
@@ -76,14 +77,19 @@ riversRuleFailed: bool
 roadsRuleFailed: bool
 lastClickTime: f64
 isMouseDoubleClick: bool
+levelWaitTime: f32
+levelWaiting: bool
+shakeBy: f32 = 0
+shakeTime: f32 = -0.7
 
-
-GRID_SIZE: f32 = 64.0
+GRID_SIZE: f32 = 72.0
 
 
 SCREEN_SIZE := rl.Vector2{16 * GRID_SIZE, 9 * GRID_SIZE}
 
 loadSubLevel :: proc(subLevelIndex: int) {
+	levelWaitTime = 3
+	levelWaiting = false
 	currentSub = subLevelIndex
 	if subLevelIndex != 0 {
 		prevSubLevel := &level.subLevel[level.order[subLevelIndex - 1][0]][level.order[subLevelIndex - 1][1]]
@@ -103,16 +109,9 @@ loadSubLevel :: proc(subLevelIndex: int) {
 				if elem == "w1w" do prevSubLevel.items[i][j] = allItems["w2ew"]
 			}
 		}
-		if (rl.IsKeyDown(rl.KeyboardKey.SPACE)) {
-			for i in 0 ..< 3 {
-				for j in 0 ..< 3 {
-					level.subLevel[i][j].items = itemMap.items
-				}
-			}
-		}
 	}
 	fmt.printfln("loading index level", subLevelIndex)
-	if subLevelIndex == 9 {
+	if subLevelIndex == 4 {
 		screen = .END
 		return
 	}
@@ -138,23 +137,28 @@ loadSubLevel :: proc(subLevelIndex: int) {
 	checkItemRules()
 }
 
+texOf :: proc(item: Item) -> rl.Texture {
+	next := item.rules[0].nextTo if len(item.rules) > 0 else .Grass
+	if item.type == .River || next == .River do return cartBlue
+	if item.type == .Road || next == .Road do return cartBrown
+	if item.type == .Grass do return cartGreen
+
+	return cartBlack
+}
 
 init :: proc() {
 	run = true
 	rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
 	rl.InitWindow(i32(SCREEN_SIZE.x), i32(SCREEN_SIZE.y), "Odin + Raylib on the web")
 
-	image := rl.LoadImage("assets/spritesheet_retina.png")
-	defer rl.UnloadImage(image)
-
-	rl.ImageFormat(&image, .UNCOMPRESSED_R8G8B8A8)
-
 	// Anything in `assets` folder is available to load.
-	cartTexture = rl.LoadTextureFromImage(image)
+	cartBlue = rl.LoadTexture("assets/cart_blue.png")
+	cartBlack = rl.LoadTexture("assets/cart_black.png")
+	cartGreen = rl.LoadTexture("assets/cart_green.png")
+	cartBrown = rl.LoadTexture("assets/cart_brown.png")
 
 
 	parchmentTexture = rl.LoadTexture("assets/Textures/parchmentCrinkled.png")
-	rl.SetTextureWrap(cartTexture, .REPEAT)
 
 	wCamera = rl.Camera2D {
 		offset   = rl.Vector2{0, 0},
@@ -165,10 +169,11 @@ init :: proc() {
 
 	sprites = make(map[string]rl.Rectangle)
 	allItems = make(map[string]Item)
+	randItems = make([dynamic]string)
 	initSprites(&sprites)
-	initItems(&allItems)
+	initItems(&allItems, &randItems)
 	initLevels(&level)
-	loadSubLevel(8)
+	loadSubLevel(0)
 	checkItemRules()
 	screen = .START
 }
@@ -231,22 +236,23 @@ update :: proc() {
 				)
 			}
 		}
-		for x in 0 ..< 3 {
-			for y in 0 ..< 3 {
+		for x in 0 ..< 2 {
+			for y in 0 ..< 2 {
 				subLevel := level.subLevel[x][y]
 				for i in 0 ..< 9 {
 					for j in 0 ..< 9 {
 						item := subLevel.items[i][j]
-						subGridSize := GRID_SIZE / 3.0
+						mainGridSize := GRID_SIZE * 4.5
+						subGridSize := mainGridSize / 9.0
 						if (len(item.spriteName) == 0) {
 							continue
 						}
 						rl.DrawTexturePro(
-							cartTexture,
+							texOf(item),
 							sprites[item.spriteName],
 							rl.Rectangle {
-								f32(x) * 3 * GRID_SIZE + f32(i) * subGridSize + 0.5 * subGridSize,
-								f32(y) * 3 * GRID_SIZE + f32(j) * subGridSize + 0.5 * subGridSize,
+								f32(x) * mainGridSize + f32(i) * subGridSize + 0.5 * subGridSize,
+								f32(y) * mainGridSize + f32(j) * subGridSize + 0.5 * subGridSize,
 								subGridSize,
 								subGridSize,
 							},
@@ -270,6 +276,43 @@ update :: proc() {
 			//Copy to clipboard
 		}
 		return
+	}
+
+	shakeTime += rl.GetFrameTime()
+	if (shakeTime > 0) {
+		if (shakeTime < 0.4) {
+			shakeBy = rl.Lerp(0, 360, shakeTime / 0.4)
+		} else {
+			shakeBy = 0
+			shakeTime = -1.6
+		}
+	}
+
+
+	if (rl.IsKeyReleased(rl.KeyboardKey.SPACE)) {
+		levelWaiting = true
+	}
+
+	if (levelWaiting) {
+		levelWaitTime -= rl.GetFrameTime()
+		if (levelWaitTime < 0) {
+			currentSub += 1
+			loadSubLevel(currentSub)
+		} else {
+			outer: for i in 0 ..< 9 {
+				for j in 0 ..< 9 {
+					item := itemMap.items[i][j]
+					if !isValidItem(&item) {
+						if (rand.int_max(1000) < 3) {
+							randItem := rand.choice(randItems[:])
+							itemMap.items[i][j] = allItems[randItem]
+							break outer
+						}
+					}
+				}
+			}
+
+		}
 	}
 
 
@@ -335,10 +378,10 @@ update :: proc() {
 
 	levelName := currentSubLevel.name
 	levelInstructions := currentSubLevel.instructions
-	rl.DrawText(levelName, i32(9.5 * GRID_SIZE), i32(0.3 * GRID_SIZE), 32, rl.BROWN)
+	rl.DrawText(levelName, i32(10.0 * GRID_SIZE), i32(0.3 * GRID_SIZE), 32, rl.BROWN)
 	rl.DrawText(
 		levelInstructions[0],
-		i32((9.5 + 2.3) * GRID_SIZE),
+		i32((9.5 + 2.1) * GRID_SIZE),
 		i32(0.85 * GRID_SIZE),
 		24,
 		rl.BROWN,
@@ -371,12 +414,12 @@ update :: proc() {
 			boundRect.x = (9 + item.hudX) * GRID_SIZE
 			boundRect.y = (3 + item.hudY) * GRID_SIZE
 			rl.DrawTexturePro(
-				cartTexture,
+				texOf(item),
 				sprites[item.spriteName],
 				drawRect,
 				rl.Vector2{0.5 * GRID_SIZE, 0.5 * GRID_SIZE},
 				item.spriteRotatedBy,
-				rl.WHITE,
+				rl.BROWN,
 			)
 		} else if item.type == .Road {
 			if len(item.rules) == 1 {
@@ -387,7 +430,7 @@ update :: proc() {
 			boundRect.x = (9 + item.hudX) * GRID_SIZE
 			boundRect.y = (6 + item.hudY) * GRID_SIZE
 			rl.DrawTexturePro(
-				cartTexture,
+				texOf(item),
 				sprites[item.spriteName],
 				drawRect,
 				rl.Vector2{0.5 * GRID_SIZE, 0.5 * GRID_SIZE},
@@ -430,7 +473,7 @@ update :: proc() {
 			drawAt.y = math.floor(drawAt.y / GRID_SIZE) * GRID_SIZE + 0.5 * GRID_SIZE
 
 			rl.DrawTexturePro(
-				cartTexture,
+				texOf(selectedItem),
 				sprites[selectedItem.spriteName],
 				drawAt,
 				rl.Vector2{0.6 * GRID_SIZE, 0.6 * GRID_SIZE},
@@ -469,11 +512,13 @@ update :: proc() {
 				continue
 			}
 			alpha: f32 = 1.0
+			rotateBy: f32 = itemMap.items[i][j].spriteRotatedBy
 			if (itemMap.ruleFailed[i][j]) {
-				alpha = 0.5
+				alpha = 0.6
+				rotateBy += shakeBy
 			}
 			rl.DrawTexturePro(
-				cartTexture,
+				texOf(itemMap.items[i][j]),
 				sprites[itemMap.items[i][j].spriteName],
 				rl.Rectangle {
 					(f32(i) + 0.5) * GRID_SIZE,
@@ -482,7 +527,7 @@ update :: proc() {
 					GRID_SIZE,
 				},
 				rl.Vector2{0.5 * GRID_SIZE, 0.5 * GRID_SIZE},
-				itemMap.items[i][j].spriteRotatedBy,
+				rotateBy,
 				rl.ColorAlpha(rl.WHITE, alpha),
 			)
 
@@ -612,8 +657,7 @@ checkItemRules :: proc() {
 	}
 
 	if (!riversRuleFailed && !roadsRuleFailed) {
-		currentSub += 1
-		loadSubLevel(currentSub)
+		levelWaiting = true
 	}
 }
 

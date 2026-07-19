@@ -1,10 +1,10 @@
 package game
 
+import "base:builtin"
 import "core:c"
 import "core:fmt"
 import "core:log"
 import "core:math"
-import b2 "vendor:box2d"
 import rl "vendor:raylib"
 
 Direction :: enum {
@@ -35,34 +35,109 @@ Item :: struct {
 }
 
 ItemMap :: struct {
-	items:      [9][9]Item,
-	ruleFailed: [9][9]bool,
+	items:           [9][9]Item,
+	ruleFailed:      [9][9]bool,
+	persistentItems: [9][9]bool,
 }
 
-Render :: struct {
-	name:     string,
-	rotateBy: f32,
+SubLevel :: struct {
+	name:         cstring,
+	instructions: [3]cstring,
+	items:        [9][9]Item,
+	elements:     [9][9]string,
 }
 
-allItems: [dynamic]Item
+Level :: struct {
+	name:     cstring,
+	subLevel: [3][3]SubLevel,
+	order:    [9][2]int,
+}
+
+Screen :: enum {
+	START,
+	GAME,
+	END,
+}
+
+screen: Screen
+level: Level
+currentSubLevel: ^SubLevel
+currentSub: int
+
+allItems: map[string]Item
 
 run: bool
 cartTexture, parchmentTexture: rl.Texture
-worldId: b2.WorldId
-bodyId: b2.BodyId
-debugDraw: b2.DebugDraw
-b2Camera: rl.Camera2D
 wCamera: rl.Camera2D
 sprites: map[string]rl.Rectangle
-rivers: [15]Render
-roads: [15]Render
 selectedItem: Item = {}
 itemMap: ItemMap
+riversRuleFailed: bool
+roadsRuleFailed: bool
+lastClickTime: f64
+isMouseDoubleClick: bool
+
 
 GRID_SIZE: f32 = 64.0
 
 
 SCREEN_SIZE := rl.Vector2{16 * GRID_SIZE, 9 * GRID_SIZE}
+
+loadSubLevel :: proc(subLevelIndex: int) {
+	currentSub = subLevelIndex
+	if subLevelIndex != 0 {
+		prevSubLevel := &level.subLevel[level.order[subLevelIndex - 1][0]][level.order[subLevelIndex - 1][1]]
+		prevSubLevel.items = itemMap.items
+
+		for i in 0 ..< 9 {
+			for j in 0 ..< 9 {
+				elem := prevSubLevel.elements[i][j]
+				if elem == "r1n" do prevSubLevel.items[i][j] = allItems["r2ns"]
+				if elem == "r1s" do prevSubLevel.items[i][j] = allItems["r2ns"]
+				if elem == "r1e" do prevSubLevel.items[i][j] = allItems["r2ew"]
+				if elem == "r1w" do prevSubLevel.items[i][j] = allItems["r2ew"]
+
+				if elem == "w1n" do prevSubLevel.items[i][j] = allItems["w2ns"]
+				if elem == "w1s" do prevSubLevel.items[i][j] = allItems["w2ns"]
+				if elem == "w1e" do prevSubLevel.items[i][j] = allItems["w2ew"]
+				if elem == "w1w" do prevSubLevel.items[i][j] = allItems["w2ew"]
+			}
+		}
+		if (rl.IsKeyDown(rl.KeyboardKey.SPACE)) {
+			for i in 0 ..< 3 {
+				for j in 0 ..< 3 {
+					level.subLevel[i][j].items = itemMap.items
+				}
+			}
+		}
+	}
+	fmt.printfln("loading index level", subLevelIndex)
+	if subLevelIndex == 9 {
+		screen = .END
+		return
+	}
+
+	currentSubLevel = &level.subLevel[level.order[subLevelIndex][0]][level.order[subLevelIndex][1]]
+	itemMap.items = {}
+	itemMap.ruleFailed = {}
+	itemMap.persistentItems = {}
+	roadsRuleFailed = false
+	riversRuleFailed = false
+
+	fmt.println("Loading level", currentSubLevel.elements[0][0])
+
+	for i in 0 ..< 9 {
+		for j in 0 ..< 9 {
+			if len(currentSubLevel.elements[i][j]) > 0 {
+				fmt.println("loading level", currentSubLevel.elements[i][j])
+				itemMap.items[i][j] = allItems[currentSubLevel.elements[i][j]]
+				itemMap.persistentItems[i][j] = true
+			}
+		}
+	}
+	checkItemRules()
+}
+
 
 init :: proc() {
 	run = true
@@ -89,14 +164,124 @@ init :: proc() {
 	}
 
 	sprites = make(map[string]rl.Rectangle)
+	allItems = make(map[string]Item)
 	initSprites(&sprites)
-	initItems(allItems)
-
-
+	initItems(&allItems)
+	initLevels(&level)
+	loadSubLevel(8)
+	checkItemRules()
+	screen = .START
 }
 
 update :: proc() {
+	if screen == .START {
+		rl.BeginDrawing()
+		rl.BeginMode2D(wCamera)
+		//parchment
+		for i in 0 ..< 2 {
+			for j in 0 ..< 1 {
+				rl.DrawTexturePro(
+					parchmentTexture,
+					rl.Rectangle{0, 0, 1024, 1024},
+					rl.Rectangle {
+						f32(i) * GRID_SIZE * 4 * 3,
+						f32(j) * GRID_SIZE * 4 * 3,
+						GRID_SIZE * 4 * 3,
+						GRID_SIZE * 4 * 3,
+					},
+					rl.Vector2{0, 0},
+					0,
+					rl.WHITE,
+				)
+			}
+		}
+		gSize := i32(GRID_SIZE)
+		rl.DrawText("Mapping Scalopia", 4 * gSize, 3 * gSize, 64, rl.BROWN)
+		rl.DrawText("Map not to scale", 6 * gSize, 5 * gSize, 24, rl.BROWN)
+		rl.DrawText("Click to continue", 6 * gSize, i32(7.5 * GRID_SIZE), 24, rl.BROWN)
 
+		rl.EndMode2D()
+		rl.EndDrawing()
+
+		if rl.IsMouseButtonReleased(.LEFT) {
+			screen = .GAME
+		}
+		return
+	}
+
+
+	if screen == .END {
+		rl.BeginDrawing()
+		rl.BeginMode2D(wCamera)
+		//parchment
+		for i in 0 ..< 2 {
+			for j in 0 ..< 1 {
+				rl.DrawTexturePro(
+					parchmentTexture,
+					rl.Rectangle{0, 0, 1024, 1024},
+					rl.Rectangle {
+						f32(i) * GRID_SIZE * 4 * 3,
+						f32(j) * GRID_SIZE * 4 * 3,
+						GRID_SIZE * 4 * 3,
+						GRID_SIZE * 4 * 3,
+					},
+					rl.Vector2{0, 0},
+					0,
+					rl.WHITE,
+				)
+			}
+		}
+		for x in 0 ..< 3 {
+			for y in 0 ..< 3 {
+				subLevel := level.subLevel[x][y]
+				for i in 0 ..< 9 {
+					for j in 0 ..< 9 {
+						item := subLevel.items[i][j]
+						subGridSize := GRID_SIZE / 3.0
+						if (len(item.spriteName) == 0) {
+							continue
+						}
+						rl.DrawTexturePro(
+							cartTexture,
+							sprites[item.spriteName],
+							rl.Rectangle {
+								f32(x) * 3 * GRID_SIZE + f32(i) * subGridSize + 0.5 * subGridSize,
+								f32(y) * 3 * GRID_SIZE + f32(j) * subGridSize + 0.5 * subGridSize,
+								subGridSize,
+								subGridSize,
+							},
+							rl.Vector2{subGridSize * 0.5, subGridSize * 0.5},
+							item.spriteRotatedBy,
+							rl.WHITE,
+						)
+					}
+				}
+			}
+		}
+		gSize := i32(GRID_SIZE)
+		rl.DrawText("Scalopia", 10 * gSize, 3 * gSize, 48, rl.BROWN)
+		rl.DrawText("Map not to scale", 10 * gSize, 4 * gSize, 24, rl.BROWN)
+		rl.DrawText("Click to screenshot", 10 * gSize, i32(5.2 * GRID_SIZE), 24, rl.BROWN)
+
+		rl.EndMode2D()
+		rl.EndDrawing()
+
+		if rl.IsMouseButtonReleased(.LEFT) {
+			//Copy to clipboard
+		}
+		return
+	}
+
+
+	if rl.IsMouseButtonReleased(.LEFT) {
+		currentTime := rl.GetTime()
+		if (currentTime - lastClickTime < 0.2) {
+			isMouseDoubleClick = true
+		} else {
+			isMouseDoubleClick = false
+		}
+		lastClickTime = rl.GetTime()
+	}
 
 	rl.BeginDrawing()
 	rl.ClearBackground({0, 120, 153, 255})
@@ -128,7 +313,7 @@ update :: proc() {
 			rl.Vector2{f32(i) * GRID_SIZE, 0},
 			rl.Vector2{f32(i) * GRID_SIZE, SCREEN_SIZE.y},
 			3 if i % 3 == 0 else 1,
-			rl.GRAY,
+			rl.ColorAlpha(rl.DARKBROWN, 0.3),
 		)
 	}
 	for i in 0 ..= 9 {
@@ -136,21 +321,45 @@ update :: proc() {
 			rl.Vector2{0, f32(i) * GRID_SIZE},
 			rl.Vector2{SCREEN_SIZE.y, f32(i) * GRID_SIZE},
 			3 if i % 3 == 0 else 1,
-			rl.GRAY,
+			rl.ColorAlpha(rl.DARKBROWN, 0.3),
 		)
 	}
 
 	itemClicked := false
 
+
+	riverRuleFailedMsg: cstring = "[]Plot the flowing waters"
+	riverRuleDoneMsg: cstring = "[*]Plot the flowing waters"
+	roadRuleFailedMsg: cstring = "[]Plot the winding roads"
+	roadRuleDoneMsg: cstring = "[*]Plot the winding roads"
+
+	levelName := currentSubLevel.name
+	levelInstructions := currentSubLevel.instructions
+	rl.DrawText(levelName, i32(9.5 * GRID_SIZE), i32(0.3 * GRID_SIZE), 32, rl.BROWN)
 	rl.DrawText(
-		"Plot the flowing waters",
+		levelInstructions[0],
+		i32((9.5 + 2.3) * GRID_SIZE),
+		i32(0.85 * GRID_SIZE),
+		24,
+		rl.BROWN,
+	)
+	rl.DrawText(levelInstructions[1], i32((9.5) * GRID_SIZE), i32(1.3 * GRID_SIZE), 20, rl.BROWN)
+	rl.DrawText(levelInstructions[2], i32((9.5) * GRID_SIZE), i32(1.8 * GRID_SIZE), 20, rl.BROWN)
+	rl.DrawText(
+		riverRuleFailedMsg if riversRuleFailed else riverRuleDoneMsg,
 		i32(9.5 * GRID_SIZE),
 		i32(5.3 * GRID_SIZE),
 		20,
 		rl.BROWN,
 	)
-	rl.DrawText("Plot the winding roads", i32(9.5 * GRID_SIZE), i32(8.3 * GRID_SIZE), 20, rl.BROWN)
-	for item in allItems {
+	rl.DrawText(
+		roadRuleFailedMsg if roadsRuleFailed else roadRuleDoneMsg,
+		i32(9.5 * GRID_SIZE),
+		i32(8.3 * GRID_SIZE),
+		20,
+		rl.BROWN,
+	)
+	for _, item in allItems {
 		drawRect := rl.Rectangle{0, 0, GRID_SIZE, GRID_SIZE}
 		boundRect := rl.Rectangle{0, 0, GRID_SIZE, GRID_SIZE}
 		if item.type == .River {
@@ -169,9 +378,7 @@ update :: proc() {
 				item.spriteRotatedBy,
 				rl.WHITE,
 			)
-		}
-
-		if item.type == .Road {
+		} else if item.type == .Road {
 			if len(item.rules) == 1 {
 				continue //skip ends
 			}
@@ -188,12 +395,20 @@ update :: proc() {
 				rl.WHITE,
 			)
 
+		} else {
+			continue
 		}
+
+		if (rl.CheckCollisionPointRec(rl.GetMousePosition(), boundRect)) {
+			rl.DrawRectangleLinesEx(boundRect, 3, rl.ColorAlpha(rl.DARKBROWN, 0.5))
+		}
+
 		if (rl.IsMouseButtonReleased(.LEFT) &&
 			   rl.CheckCollisionPointRec(rl.GetMousePosition(), boundRect)) {
 			fmt.printfln("Clicked on ", item.spriteName, item.spriteRotatedBy, len(item.rules))
 			itemClicked = true
 			selectedItem = item
+			rl.DrawRectangleRec(boundRect, rl.ColorAlpha(rl.DARKBROWN, 0.5))
 		}
 	}
 
@@ -209,7 +424,7 @@ update :: proc() {
 
 	if len(selectedItem.spriteName) > 0 {
 		mouseAt := rl.GetMousePosition()
-		drawAt := rl.Rectangle{mouseAt.x, mouseAt.y, GRID_SIZE, GRID_SIZE}
+		drawAt := rl.Rectangle{mouseAt.x, mouseAt.y, GRID_SIZE * 1.2, GRID_SIZE * 1.2}
 		if (mouseAt.x <= 9 * GRID_SIZE) {
 			drawAt.x = math.floor(drawAt.x / GRID_SIZE) * GRID_SIZE + 0.5 * GRID_SIZE
 			drawAt.y = math.floor(drawAt.y / GRID_SIZE) * GRID_SIZE + 0.5 * GRID_SIZE
@@ -218,14 +433,30 @@ update :: proc() {
 				cartTexture,
 				sprites[selectedItem.spriteName],
 				drawAt,
-				rl.Vector2{0.5 * GRID_SIZE, 0.5 * GRID_SIZE},
+				rl.Vector2{0.6 * GRID_SIZE, 0.6 * GRID_SIZE},
 				selectedItem.spriteRotatedBy,
 				rl.ColorAlpha(rl.WHITE, 0.5),
 			)
 			if rl.IsMouseButtonReleased(.LEFT) {
 				x: i32 = i32(math.floor(mouseAt.x / GRID_SIZE))
 				y: i32 = i32(math.floor(mouseAt.y / GRID_SIZE))
-				itemMap.items[x][y] = selectedItem
+				if !itemMap.persistentItems[x][y] {
+					itemMap.items[x][y] = selectedItem
+					checkItemRules()
+				}
+			}
+		}
+	}
+
+	if (rl.IsMouseButtonReleased(.LEFT) && isMouseDoubleClick) {
+		mouseAt := rl.GetMousePosition()
+		if (mouseAt.x <= 9 * GRID_SIZE) {
+			x: i32 = i32(math.floor(mouseAt.x / GRID_SIZE))
+			y: i32 = i32(math.floor(mouseAt.y / GRID_SIZE))
+
+			if (!itemMap.persistentItems[x][y] && isValidItem(&itemMap.items[x][y])) {
+
+				itemMap.items[x][y] = {}
 				checkItemRules()
 			}
 		}
@@ -274,11 +505,42 @@ update :: proc() {
 
 checkItemRules :: proc() {
 
+	riversRuleFailed = false
+	roadsRuleFailed = false
 	for i in 0 ..< 9 {
 		for j in 0 ..< 9 {
 			itemMap.ruleFailed[i][j] = false
 			item := itemMap.items[i][j]
 			if isValidItem(&item) {
+				if item.type == .Building {
+					ruleFailed := true
+					type := item.rules[0].nextTo
+
+					if i > 0 {
+						if isValidItem(&itemMap.items[i - 1][j]) && itemMap.items[i - 1][j].type == type do ruleFailed = false
+					}
+					if i < 8 {
+						if isValidItem(&itemMap.items[i + 1][j]) && itemMap.items[i + 1][j].type == type do ruleFailed = false
+					}
+					if j > 0 {
+						if isValidItem(&itemMap.items[i][j - 1]) && itemMap.items[i][j - 1].type == type do ruleFailed = false
+					}
+					if j < 8 {
+						if isValidItem(&itemMap.items[i][j + 1]) && itemMap.items[i][j + 1].type == type do ruleFailed = false
+					}
+
+
+					if (ruleFailed == true) {
+						itemMap.ruleFailed[i][j] = true
+						if type == .River {
+							riversRuleFailed = true
+						}
+						if type == .Road {
+							roadsRuleFailed = true
+						}
+					}
+					continue
+				}
 				for rule in item.rules {
 					ci := i
 					cj := j
@@ -296,18 +558,65 @@ checkItemRules :: proc() {
 					if (ci >= 0 && ci < 9 && cj >= 0 && cj < 9) {
 						checkItem := itemMap.items[ci][cj]
 						if isValidItem(&checkItem) {
-							if (checkItem.type != rule.nextTo) {
+							rDir: Direction
+							switch (rule.along) {
+							case .North:
+								rDir = .South
+							case .South:
+								rDir = .North
+							case .East:
+								rDir = .West
+							case .West:
+								rDir = .East
+							}
+							cruleRDir: ItemRule
+							foundRRule := false
+							for crule in checkItem.rules {
+								if (crule.along == rDir) {
+									cruleRDir = crule
+									foundRRule = true
+								}
+							}
+							if (checkItem.type != rule.nextTo ||
+								   !foundRRule ||
+								   (cruleRDir.nextTo != checkItem.type)) {
 								itemMap.ruleFailed[i][j] = true
+								if rule.nextTo == .River {
+									riversRuleFailed = true
+								}
+								if rule.nextTo == .Road {
+									roadsRuleFailed = true
+								}
 							}
 						} else {
 							itemMap.ruleFailed[i][j] = true
+							if rule.nextTo == .River {
+								riversRuleFailed = true
+							}
+							if rule.nextTo == .Road {
+								roadsRuleFailed = true
+							}
+						}
+					} else {
+						itemMap.ruleFailed[i][j] = true
+						if rule.nextTo == .River {
+							riversRuleFailed = true
+						}
+						if rule.nextTo == .Road {
+							roadsRuleFailed = true
 						}
 					}
 				}
 			}
 		}
 	}
+
+	if (!riversRuleFailed && !roadsRuleFailed) {
+		currentSub += 1
+		loadSubLevel(currentSub)
+	}
 }
+
 
 isValidItem :: proc(item: ^Item) -> bool {
 	return len(item.spriteName) > 0

@@ -1,7 +1,88 @@
 package game
 
+import "core:fmt"
 import rl "vendor:raylib"
 
+initLevels :: proc(level: ^Level) {
+	level.name = "Scalopia"
+
+	level.order[0] = {0, 0}
+	level.order[1] = {2, 2}
+	level.order[2] = {0, 2}
+	level.order[3] = {2, 0}
+	level.order[4] = {1, 2}
+	level.order[5] = {1, 0}
+	level.order[6] = {0, 1}
+	level.order[7] = {2, 1}
+	level.order[8] = {1, 1}
+
+	subLevel: SubLevel = {}
+	level.subLevel[0][0].name = "Lights of the Setting Sun"
+	level.subLevel[1][0].name = "Aurora"
+	level.subLevel[2][0].name = "Lights of the Rising Sun"
+	level.subLevel[0][1].name = "Evening"
+	level.subLevel[1][1].name = "City of Centria"
+	level.subLevel[2][1].name = "Morning"
+	level.subLevel[0][2].name = "Winds of the Setting Sun"
+	level.subLevel[1][2].name = "Gust"
+	level.subLevel[2][2].name = "Winds of the Rising Sun"
+
+
+	level.subLevel[0][0].instructions[0] = "Tutorial"
+	level.subLevel[0][0].instructions[1] = "Click Below and Left to map"
+	level.subLevel[0][0].instructions[2] = "Double click to Remove"
+
+	level.subLevel[1][0].instructions[0] = "Level 5/8"
+	level.subLevel[1][0].instructions[1] = "Click Below and Left to map"
+	level.subLevel[1][0].instructions[2] = "Double click to Remove"
+
+	level.subLevel[2][0].instructions[0] = "Level 3/8"
+	level.subLevel[2][0].instructions[1] = "Click Below and Left to map"
+	level.subLevel[2][0].instructions[2] = "Double click to Remove"
+
+	level.subLevel[0][1].instructions[0] = "Level 6/8"
+	level.subLevel[0][1].instructions[1] = "Click Below and Left to map"
+	level.subLevel[0][1].instructions[2] = "Double click to Remove"
+
+	level.subLevel[1][1].instructions[0] = "Level 8/8"
+	level.subLevel[1][1].instructions[1] = "Click Below and Left to map"
+	level.subLevel[1][1].instructions[2] = "Double click to Remove"
+
+	level.subLevel[2][1].instructions[0] = "Level 7/8"
+	level.subLevel[2][1].instructions[1] = "Click Below and Left to map"
+	level.subLevel[2][1].instructions[2] = "Double click to Remove"
+
+	level.subLevel[0][2].instructions[0] = "Level 2/8"
+	level.subLevel[0][2].instructions[1] = "Click Below and Left to map"
+	level.subLevel[0][2].instructions[2] = "Double click to Remove"
+
+	level.subLevel[1][2].instructions[0] = "Level 4/8"
+	level.subLevel[1][2].instructions[1] = "Click Below and Left to map"
+	level.subLevel[1][2].instructions[2] = "Double click to Remove"
+
+	level.subLevel[2][2].instructions[0] = "Level 1/8"
+	level.subLevel[2][2].instructions[1] = "Click Below and Left to map"
+	level.subLevel[2][2].instructions[2] = "Double click to Remove"
+
+	subLevel.elements[0][0] = "r1e"
+	subLevel.elements[1][1] = "church"
+	subLevel.elements[2][0] = "r1w"
+	subLevel.elements[0][8] = "w1e"
+	subLevel.elements[1][7] = "mill"
+	subLevel.elements[2][8] = "w1w"
+
+	level.subLevel[0][0].elements = subLevel.elements
+	level.subLevel[1][0].elements = subLevel.elements
+	level.subLevel[2][0].elements = subLevel.elements
+	level.subLevel[0][1].elements = subLevel.elements
+	level.subLevel[1][1].elements = subLevel.elements
+	level.subLevel[2][1].elements = subLevel.elements
+	level.subLevel[0][2].elements = subLevel.elements
+	level.subLevel[1][2].elements = subLevel.elements
+	level.subLevel[2][2].elements = subLevel.elements
+
+	fmt.println("Level init", level.subLevel[0][0].elements[0][0])
+}
 
 initSprites :: proc(sprites: ^map[string]rl.Rectangle) {
 	sprites["arrowCorner"] = rl.Rectangle{512, 1152, 128, 128}
@@ -89,58 +170,54 @@ initSprites :: proc(sprites: ^map[string]rl.Rectangle) {
 	sprites["well"] = rl.Rectangle{512, 0, 128, 128}
 }
 
-initItems :: proc(allitems: [dynamic]Item) {
-	allItems = make([dynamic]Item)
+initItems :: proc(allItems: ^map[string]Item) {
 	item: Item
 
 	//pathCorner
-
 	item = Item {
 		spriteName      = "pathCorner",
 		spriteRotatedBy = 0,
 		type            = .River,
-        hudX = 0,
-        hudY = 1,
+		hudX            = 0,
+		hudY            = 1,
 	}
-
 	append(&item.rules, ItemRule{.River, .North}, ItemRule{.River, .East})
+	allItems["w2ne"] = item
 
-
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "pathCorner",
 		spriteRotatedBy = 90,
 		type            = .River,
-        hudX = 0,
-        hudY = 0,
+		hudX            = 0,
+		hudY            = 0,
 	}
 
 	append(&item.rules, ItemRule{.River, .East}, ItemRule{.River, .South})
+	allItems["w2es"] = item
 
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "pathCorner",
 		spriteRotatedBy = 180,
 		type            = .River,
-        hudX = 1,
-        hudY = 0,
+		hudX            = 1,
+		hudY            = 0,
 	}
 
 	append(&item.rules, ItemRule{.River, .South}, ItemRule{.River, .West})
+	allItems["w2sw"] = item
 
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "pathCorner",
 		spriteRotatedBy = 270,
 		type            = .River,
-        hudX = 1,
-        hudY = 1,
+		hudX            = 1,
+		hudY            = 1,
 	}
 
 	append(&item.rules, ItemRule{.River, .West}, ItemRule{.River, .North})
+	allItems["w2wn"] = item
 
 	//pathEnd
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "pathEnd",
 		spriteRotatedBy = 0,
@@ -148,8 +225,8 @@ initItems :: proc(allitems: [dynamic]Item) {
 	}
 
 	append(&item.rules, ItemRule{.River, .North})
+	allItems["w1n"] = item
 
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "pathEnd",
 		spriteRotatedBy = 90,
@@ -157,8 +234,8 @@ initItems :: proc(allitems: [dynamic]Item) {
 	}
 
 	append(&item.rules, ItemRule{.River, .East})
+	allItems["w1e"] = item
 
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "pathEnd",
 		spriteRotatedBy = 180,
@@ -166,8 +243,8 @@ initItems :: proc(allitems: [dynamic]Item) {
 	}
 
 	append(&item.rules, ItemRule{.River, .South})
+	allItems["w1s"] = item
 
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "pathEnd",
 		spriteRotatedBy = 270,
@@ -175,15 +252,15 @@ initItems :: proc(allitems: [dynamic]Item) {
 	}
 
 	append(&item.rules, ItemRule{.River, .West})
+	allItems["w1w"] = item
 
 	//pathSplit
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "pathSplit",
 		spriteRotatedBy = 0,
 		type            = .River,
-        hudX = 2,
-        hudY = 0,
+		hudX            = 2,
+		hudY            = 0,
 	}
 
 	append(
@@ -192,25 +269,25 @@ initItems :: proc(allitems: [dynamic]Item) {
 		ItemRule{.River, .East},
 		ItemRule{.River, .South},
 	)
+	allItems["w3w"] = item
 
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "pathSplit",
 		spriteRotatedBy = 90,
 		type            = .River,
-        hudX = 2,
-        hudY = 1,
+		hudX            = 2,
+		hudY            = 1,
 	}
 
 	append(&item.rules, ItemRule{.River, .East}, ItemRule{.River, .South}, ItemRule{.River, .West})
+	allItems["w3n"] = item
 
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "pathSplit",
 		spriteRotatedBy = 180,
 		type            = .River,
-        hudX = 3,
-        hudY = 0,
+		hudX            = 3,
+		hudY            = 0,
 	}
 
 	append(
@@ -219,50 +296,49 @@ initItems :: proc(allitems: [dynamic]Item) {
 		ItemRule{.River, .West},
 		ItemRule{.River, .North},
 	)
+	allItems["w3e"] = item
 
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "pathSplit",
 		spriteRotatedBy = 270,
 		type            = .River,
-        hudX = 3,
-        hudY = 1,
+		hudX            = 3,
+		hudY            = 1,
 	}
 
 	append(&item.rules, ItemRule{.River, .West}, ItemRule{.River, .North}, ItemRule{.River, .East})
+	allItems["w3s"] = item
 
 	//pathStraight	
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "pathStraight",
 		spriteRotatedBy = 0,
 		type            = .River,
-        hudX = 4,
-        hudY = 0,
+		hudX            = 4,
+		hudY            = 0,
 	}
 
 	append(&item.rules, ItemRule{.River, .North}, ItemRule{.River, .South})
+	allItems["w2ns"] = item
 
-
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "pathStraight",
 		spriteRotatedBy = 90,
 		type            = .River,
-        hudX = 4,
-        hudY = 1,
+		hudX            = 4,
+		hudY            = 1,
 	}
 
 	append(&item.rules, ItemRule{.River, .West}, ItemRule{.River, .East})
+	allItems["w2ew"] = item
 
 	//pathCrossing
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "pathCrossing",
 		spriteRotatedBy = 0,
 		type            = .River,
-        hudX = 5,
-        hudY = 0,
+		hudX            = 5,
+		hudY            = 0,
 	}
 
 	append(
@@ -272,166 +348,156 @@ initItems :: proc(allitems: [dynamic]Item) {
 		ItemRule{.River, .East},
 		ItemRule{.River, .South},
 	)
+	allItems["w4"] = item
 
 	//arrowCorner
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "arrowCorner",
 		spriteRotatedBy = 0,
 		type            = .Road,
-        hudX = 0,
-        hudY = 1,
+		hudX            = 0,
+		hudY            = 1,
 	}
 
 	append(&item.rules, ItemRule{.Road, .North}, ItemRule{.Road, .East})
+	allItems["r2ne"] = item
 
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "arrowCorner",
 		spriteRotatedBy = 90,
 		type            = .Road,
-        hudX = 0,
-        hudY = 0,
+		hudX            = 0,
+		hudY            = 0,
 	}
-
 	append(&item.rules, ItemRule{.Road, .East}, ItemRule{.Road, .South})
+	allItems["r2es"] = item
 
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "arrowCorner",
 		spriteRotatedBy = 180,
 		type            = .Road,
-        hudX = 1,
-        hudY = 0,
+		hudX            = 1,
+		hudY            = 0,
 	}
 
 	append(&item.rules, ItemRule{.Road, .South}, ItemRule{.Road, .West})
+	allItems["r2sw"] = item
 
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "arrowCorner",
 		spriteRotatedBy = 270,
 		type            = .Road,
-        hudX = 1,
-        hudY = 1,
+		hudX            = 1,
+		hudY            = 1,
 	}
 
 	append(&item.rules, ItemRule{.Road, .West}, ItemRule{.Road, .North})
+	allItems["r2wn"] = item
 
 	//arrowEnd
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "arrowEnd",
 		spriteRotatedBy = 180,
 		type            = .Road,
 	}
-
 	append(&item.rules, ItemRule{.Road, .North})
+	allItems["r1n"] = item
 
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "arrowEnd",
 		spriteRotatedBy = 270,
 		type            = .Road,
 	}
-
 	append(&item.rules, ItemRule{.Road, .East})
+	allItems["r1e"] = item
 
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "arrowEnd",
 		spriteRotatedBy = 0,
 		type            = .Road,
 	}
-
 	append(&item.rules, ItemRule{.Road, .South})
+	allItems["r1s"] = item
 
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "arrowEnd",
 		spriteRotatedBy = 90,
 		type            = .Road,
 	}
-
 	append(&item.rules, ItemRule{.Road, .West})
+	allItems["r1w"] = item
 
 	//arrowSplit
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "arrowSplit",
 		spriteRotatedBy = 0,
 		type            = .Road,
-        hudX = 2,
-        hudY = 0,
+		hudX            = 2,
+		hudY            = 0,
 	}
-
 	append(&item.rules, ItemRule{.Road, .North}, ItemRule{.Road, .East}, ItemRule{.Road, .South})
+	allItems["r3w"] = item
 
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "arrowSplit",
 		spriteRotatedBy = 90,
 		type            = .Road,
-        hudX = 2,
-        hudY = 1,
+		hudX            = 2,
+		hudY            = 1,
 	}
-
 	append(&item.rules, ItemRule{.Road, .East}, ItemRule{.Road, .South}, ItemRule{.Road, .West})
+	allItems["r3n"] = item
 
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "arrowSplit",
 		spriteRotatedBy = 180,
 		type            = .Road,
-        hudX = 3,
-        hudY = 0,
+		hudX            = 3,
+		hudY            = 0,
 	}
-
 	append(&item.rules, ItemRule{.Road, .South}, ItemRule{.Road, .West}, ItemRule{.Road, .North})
+	allItems["r3e"] = item
 
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "arrowSplit",
 		spriteRotatedBy = 270,
 		type            = .Road,
-        hudX = 3,
-        hudY = 1,
+		hudX            = 3,
+		hudY            = 1,
 	}
-
 	append(&item.rules, ItemRule{.Road, .West}, ItemRule{.Road, .North}, ItemRule{.Road, .East})
+	allItems["r3s"] = item
 
 	//arrowStraight	
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "arrowStraight",
 		spriteRotatedBy = 0,
 		type            = .Road,
-        hudX = 4,
-        hudY = 0,
+		hudX            = 4,
+		hudY            = 0,
 	}
 
 	append(&item.rules, ItemRule{.Road, .North}, ItemRule{.Road, .South})
+	allItems["r2ns"] = item
 
-
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "arrowStraight",
 		spriteRotatedBy = 90,
 		type            = .Road,
-        hudX = 4,
-        hudY = 1,
+		hudX            = 4,
+		hudY            = 1,
 	}
 
 	append(&item.rules, ItemRule{.Road, .West}, ItemRule{.Road, .East})
+	allItems["r2ew"] = item
 
 	//arrowCrossing
-	append(&allItems, item)
 	item = Item {
 		spriteName      = "arrowCrossing",
 		spriteRotatedBy = 0,
 		type            = .Road,
-        hudX = 5,
-        hudY = 0,
+		hudX            = 5,
+		hudY            = 0,
 	}
 
 	append(
@@ -441,7 +507,7 @@ initItems :: proc(allitems: [dynamic]Item) {
 		ItemRule{.Road, .East},
 		ItemRule{.Road, .South},
 	)
-	append(&allItems, item)
+	allItems["r4"] = item
 
 	item = Item {
 		spriteName = "castleTall",
@@ -454,7 +520,7 @@ initItems :: proc(allitems: [dynamic]Item) {
 		ItemRule{.Road, .East},
 		ItemRule{.Road, .South},
 	)
-	append(&allItems, item)
+	allItems[item.spriteName] = item
 
 	item = Item {
 		spriteName = "church",
@@ -467,7 +533,7 @@ initItems :: proc(allitems: [dynamic]Item) {
 		ItemRule{.Road, .East},
 		ItemRule{.Road, .South},
 	)
-	append(&allItems, item)
+	allItems[item.spriteName] = item
 
 	item = Item {
 		spriteName = "house",
@@ -480,7 +546,7 @@ initItems :: proc(allitems: [dynamic]Item) {
 		ItemRule{.Road, .East},
 		ItemRule{.Road, .South},
 	)
-	append(&allItems, item)
+	allItems[item.spriteName] = item
 
 	item = Item {
 		spriteName = "stable",
@@ -493,7 +559,7 @@ initItems :: proc(allitems: [dynamic]Item) {
 		ItemRule{.Road, .East},
 		ItemRule{.Road, .South},
 	)
-	append(&allItems, item)
+	allItems[item.spriteName] = item
 
 	item = Item {
 		spriteName = "dock",
@@ -506,7 +572,7 @@ initItems :: proc(allitems: [dynamic]Item) {
 		ItemRule{.River, .East},
 		ItemRule{.River, .South},
 	)
-	append(&allItems, item)
+	allItems[item.spriteName] = item
 
 	item = Item {
 		spriteName = "lighthouse",
@@ -519,7 +585,7 @@ initItems :: proc(allitems: [dynamic]Item) {
 		ItemRule{.River, .East},
 		ItemRule{.River, .South},
 	)
-	append(&allItems, item)
+	allItems[item.spriteName] = item
 
 	item = Item {
 		spriteName = "waterWheel",
@@ -532,7 +598,7 @@ initItems :: proc(allitems: [dynamic]Item) {
 		ItemRule{.River, .East},
 		ItemRule{.River, .South},
 	)
-	append(&allItems, item)
+	allItems[item.spriteName] = item
 
 	item = Item {
 		spriteName = "mill",
@@ -545,7 +611,6 @@ initItems :: proc(allitems: [dynamic]Item) {
 		ItemRule{.River, .East},
 		ItemRule{.River, .South},
 	)
-	append(&allItems, item)
-
+	allItems[item.spriteName] = item
 }
 
